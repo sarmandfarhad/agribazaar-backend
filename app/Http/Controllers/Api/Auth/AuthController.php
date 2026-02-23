@@ -78,9 +78,13 @@ class AuthController extends Controller
             'city'        => $request->city,
         ]);
 
+        $token = $user->createToken('farmer-token')->plainTextToken;
+        $user->update(['token' => $token]);
+
         return response()->json([
             'success' => true,
             'message' => 'Farmer registered successfully. Await admin approval.',
+            'token'   => $token,
             'user'    => [
                 'id'        => $user->id,
                 'phone'     => $user->phone,
@@ -123,9 +127,13 @@ class AuthController extends Controller
             'business_name' => $request->business_name,
         ]);
 
+        $token = $user->createToken('buyer-token')->plainTextToken;
+        $user->update(['token' => $token]);
+
         return response()->json([
             'success' => true,
             'message' => 'Buyer registered successfully. Await admin approval.',
+            'token'   => $token,
             'user'    => [
                 'id'        => $user->id,
                 'phone'     => $user->phone,
@@ -153,7 +161,11 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid phone or password.'], 401);
         }
 
-        if ($user->status !== 'approved') {
+        if ($user->status === 'blocked') {
+            return response()->json(['success' => false, 'message' => 'Your account has been blocked.'], 403);
+        }
+
+        if ($user->status === 'pending') {
             return response()->json(['success' => false, 'message' => 'Your account is not approved yet.'], 403);
         }
 
@@ -165,6 +177,36 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Login successful.',
             'token'   => $token,
+            'user'    => [
+                'id'        => $user->id,
+                'phone'     => $user->phone,
+                'email'     => $user->email,
+                'user_type' => $user->user_type,
+                'status'    => $user->status,
+                'profile'   => $user->profile(),
+            ],
+        ]);
+    }
+
+    // ─── LOGOUT ────────────────────────────────────────────────────
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+        $request->user()->update(['token' => null]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out successfully.',
+        ]);
+    }
+
+    // ─── GET CURRENT USER ──────────────────────────────────────────
+    public function me(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'success' => true,
             'user'    => [
                 'id'        => $user->id,
                 'phone'     => $user->phone,
