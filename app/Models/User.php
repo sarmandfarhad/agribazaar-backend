@@ -18,9 +18,12 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'phone',
         'email',
         'password',
+        'user_type',
+        'status',
+        'token',
     ];
 
     /**
@@ -30,8 +33,31 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
-        'remember_token',
+        'token',
     ];
+
+    public function farmer()
+    {
+        return $this->hasOne(Farmer::class);
+    }
+
+    public function buyer()
+    {
+        return $this->hasOne(Buyer::class);
+    }
+
+
+      public function profile()
+    {
+        return match($this->user_type) {
+            'farmer' => $this->farmer,
+            'buyer'  => $this->buyer,
+            default  => null,
+        };
+    }
+    public function isAdmin(): bool   { return $this->user_type === 'admin'; }
+    public function isFarmer(): bool  { return $this->user_type === 'farmer'; }
+    public function isBuyer(): bool   { return $this->user_type === 'buyer'; }
 
     /**
      * Get the attributes that should be cast.
