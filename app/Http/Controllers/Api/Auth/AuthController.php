@@ -39,7 +39,13 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Login successful.',
             'token'   => $token,
-            'user'    => ['id' => $user->id, 'email' => $user->email, 'user_type' => $user->user_type],
+            'user'    => [
+                'id'        => $user->id,
+                'email'     => $user->email,
+                'phone'     => $user->phone,
+                'user_type' => $user->user_type,
+                'status'    => $user->status,
+            ],
         ]);
     }
 
@@ -64,7 +70,7 @@ class AuthController extends Controller
             'status'    => 'pending',
         ]);
 
-        Farmer::create([
+        $farmer = Farmer::create([
             'user_id'     => $user->id,
             'first_name'  => $request->first_name,
             'second_name' => $request->second_name,
@@ -75,6 +81,14 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Farmer registered successfully. Await admin approval.',
+            'user'    => [
+                'id'        => $user->id,
+                'phone'     => $user->phone,
+                'email'     => $user->email,
+                'user_type' => $user->user_type,
+                'status'    => $user->status,
+                'profile'   => $farmer,
+            ],
         ], 201);
     }
 
@@ -100,7 +114,7 @@ class AuthController extends Controller
             'status'    => 'pending',
         ]);
 
-        Buyer::create([
+        $buyer = Buyer::create([
             'user_id'       => $user->id,
             'first_name'    => $request->first_name,
             'second_name'   => $request->second_name,
@@ -112,6 +126,14 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Buyer registered successfully. Await admin approval.',
+            'user'    => [
+                'id'        => $user->id,
+                'phone'     => $user->phone,
+                'email'     => $user->email,
+                'user_type' => $user->user_type,
+                'status'    => $user->status,
+                'profile'   => $buyer,
+            ],
         ], 201);
     }
 
@@ -139,8 +161,6 @@ class AuthController extends Controller
         $token = $user->createToken($user->user_type . '-token')->plainTextToken;
         $user->update(['token' => $token]);
 
-        $profile = $user->user_type === 'farmer' ? $user->farmer : $user->buyer;
-
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
@@ -148,9 +168,10 @@ class AuthController extends Controller
             'user'    => [
                 'id'        => $user->id,
                 'phone'     => $user->phone,
+                'email'     => $user->email,
                 'user_type' => $user->user_type,
                 'status'    => $user->status,
-                'profile'   => $profile,
+                'profile'   => $user->profile(),
             ],
         ]);
     }

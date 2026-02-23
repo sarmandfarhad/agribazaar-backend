@@ -13,5 +13,14 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::get('/users', function () {
-    return User::all();
+    return User::with(['farmer', 'buyer'])->get()->map(function ($user) {
+        return [
+            'id'        => $user->id,
+            'phone'     => $user->phone,
+            'email'     => $user->email,
+            'user_type' => $user->user_type,
+            'status'    => $user->status,
+            'profile'   => $user->profile(),
+        ];
+    });
 });
