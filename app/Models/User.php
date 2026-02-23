@@ -6,11 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -47,17 +48,26 @@ class User extends Authenticatable
     }
 
 
-      public function profile()
+    public function profile()
     {
-        return match($this->user_type) {
+        return match ($this->user_type) {
             'farmer' => $this->farmer,
             'buyer'  => $this->buyer,
             default  => null,
         };
     }
-    public function isAdmin(): bool   { return $this->user_type === 'admin'; }
-    public function isFarmer(): bool  { return $this->user_type === 'farmer'; }
-    public function isBuyer(): bool   { return $this->user_type === 'buyer'; }
+    public function isAdmin(): bool
+    {
+        return $this->user_type === 'admin';
+    }
+    public function isFarmer(): bool
+    {
+        return $this->user_type === 'farmer';
+    }
+    public function isBuyer(): bool
+    {
+        return $this->user_type === 'buyer';
+    }
 
     /**
      * Get the attributes that should be cast.
