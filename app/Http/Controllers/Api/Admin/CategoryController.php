@@ -11,11 +11,19 @@ class CategoryController extends Controller
     /**
      * Display a listing of categories.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $query = Category::query();
+
+        if ($request->has('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        $categories = $query->latest()->get();
+
         return response()->json([
             'success' => true,
-            'categories' => Category::all()
+            'categories' => $categories
         ]);
     }
 

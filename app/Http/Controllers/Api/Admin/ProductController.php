@@ -14,9 +14,23 @@ class ProductController extends Controller
     /**
      * Display a listing of products.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with(['category', 'images'])->get();
+        $query = Product::with(['category', 'images']);
+
+        if ($request->has('search')) {
+            $query->where('title', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->has('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $products = $query->latest()->get();
 
         return response()->json([
             'success' => true,
