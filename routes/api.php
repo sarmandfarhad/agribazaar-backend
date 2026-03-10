@@ -12,18 +12,14 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
-Route::get('/users', function () {
-    return User::with(['farmer', 'buyer'])
-        ->whereIn('user_type', ['farmer', 'buyer'])
-        ->get()
-        ->map(function ($user) {
-            return [
-                'id'        => $user->id,
-                'phone'     => $user->phone,
-                'email'     => $user->email,
-                'user_type' => $user->user_type,
-                'status'    => $user->status,
-                'profile'   => $user->profile(),
-            ];
-        });
+// Protected routes (require auth:sanctum)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Admin routes
+    Route::prefix('admin')->group(function () {
+        Route::get('/users', [\App\Http\Controllers\Api\Admin\UserController::class, 'index']);
+        Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\Admin\UserController::class, 'updateStatus']);
+    });
 });
