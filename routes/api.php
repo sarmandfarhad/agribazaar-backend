@@ -5,6 +5,13 @@ use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use App\Http\Controllers\Api\Auth\AuthController;
 
+// Public Catalog routes
+Route::get('/products', [\App\Http\Controllers\Api\ProductController::class, 'index']);
+Route::get('/products/{product}', [\App\Http\Controllers\Api\ProductController::class, 'show']);
+Route::get('/categories', [\App\Http\Controllers\Api\CategoryController::class, 'index']);
+Route::get('/categories/{category}', [\App\Http\Controllers\Api\CategoryController::class, 'show']);
+
+// Auth routes
 Route::prefix('auth')->group(function () {
     Route::post('/admin/login', [AuthController::class, 'adminLogin']);
     Route::post('/farmer/signup', [AuthController::class, 'farmerSignup']);
