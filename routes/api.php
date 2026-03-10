@@ -31,13 +31,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Product management
         Route::get('/products', [\App\Http\Controllers\Api\Admin\ProductController::class, 'index']);
+        Route::get('/products/{product}', [\App\Http\Controllers\Api\Admin\ProductController::class, 'show']);
         Route::post('/products', [\App\Http\Controllers\Api\Admin\ProductController::class, 'store']);
         Route::patch('/products/{product}', [\App\Http\Controllers\Api\Admin\ProductController::class, 'update']);
         Route::delete('/products/{product}', [\App\Http\Controllers\Api\Admin\ProductController::class, 'destroy']);
 
         // Category management
         Route::get('/categories', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'index']);
+        Route::get('/categories/{category}', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'show']);
         Route::post('/categories', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'store']);
+        Route::patch('/categories/{category}', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'update']);
         Route::delete('/categories/{category}', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'destroy']);
     });
 });

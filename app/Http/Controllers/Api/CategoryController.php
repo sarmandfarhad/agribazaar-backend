@@ -10,9 +10,15 @@ class CategoryController extends Controller
     /**
      * Display a listing of active categories.
      */
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
-        $categories = Category::where('isActive', true)->get();
+        $query = Category::where('isActive', true);
+
+        if ($request->has('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        $categories = $query->get();
 
         return response()->json([
             'success' => true,

@@ -57,6 +57,44 @@ class CategoryController extends Controller
     }
 
     /**
+     * Display the specified category.
+     */
+    public function show(Category $category)
+    {
+        return response()->json([
+            'success' => true,
+            'category' => $category
+        ]);
+    }
+
+    /**
+     * Update the specified category in storage.
+     */
+    public function update(Request $request, Category $category)
+    {
+        // Ensure only admin can perform this action
+        if (!$request->user() || !$request->user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can perform this action.'
+            ], 403);
+        }
+
+        $request->validate([
+            'name' => 'sometimes|required|string|max:255|unique:categories,name,' . $category->id,
+            'isActive' => 'sometimes|boolean',
+        ]);
+
+        $category->update($request->only(['name', 'isActive']));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Category updated successfully.',
+            'category' => $category
+        ]);
+    }
+
+    /**
      * Remove the specified category from storage.
      */
     public function destroy(Request $request, Category $category)

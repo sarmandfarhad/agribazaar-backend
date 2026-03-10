@@ -39,6 +39,17 @@ class ProductController extends Controller
     }
 
     /**
+     * Display the specified product.
+     */
+    public function show(Product $product)
+    {
+        return response()->json([
+            'success' => true,
+            'product' => $product->load(['category', 'images'])
+        ]);
+    }
+
+    /**
      * Store a newly created product in storage.
      */
     public function store(Request $request)
