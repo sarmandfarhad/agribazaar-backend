@@ -21,5 +21,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('admin')->group(function () {
         Route::get('/users', [\App\Http\Controllers\Api\Admin\UserController::class, 'index']);
         Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\Admin\UserController::class, 'updateStatus']);
+
+        // Product management
+        Route::get('/products', [\App\Http\Controllers\Api\Admin\ProductController::class, 'index']);
+        Route::post('/products', [\App\Http\Controllers\Api\Admin\ProductController::class, 'store']);
+        Route::patch('/products/{product}', [\App\Http\Controllers\Api\Admin\ProductController::class, 'update']);
+        Route::delete('/products/{product}', [\App\Http\Controllers\Api\Admin\ProductController::class, 'destroy']);
+
+        // Category management
+        Route::get('/categories', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'index']);
+        Route::post('/categories', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'store']);
+        Route::delete('/categories/{category}', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'destroy']);
     });
 });
