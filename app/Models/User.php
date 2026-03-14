@@ -69,6 +69,18 @@ class User extends Authenticatable
         return $this->user_type === 'buyer';
     }
 
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
+    }
+
+    public function assignedOrders()
+    {
+        return $this->belongsToMany(Order::class, 'farmer_order', 'farmer_id', 'order_id')
+                    ->withPivot('status')
+                    ->withTimestamps();
+    }
+
     /**
      * Get the attributes that should be cast.
      *

@@ -19,4 +19,5 @@ class ProductImage extends Model
     }
 
     protected $appends = ['image_url'];
+    
 }

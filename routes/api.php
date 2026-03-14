@@ -42,5 +42,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/categories', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'store']);
         Route::match(['PUT', 'POST', 'PATCH'], '/categories/{category}', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'update']);
         Route::delete('/categories/{category}', [\App\Http\Controllers\Api\Admin\CategoryController::class, 'destroy']);
+
+        // Order management (Admin)
+        Route::get('/orders', [\App\Http\Controllers\Api\OrderController::class, 'index']);
+        Route::post('/orders/{id}/assign-farmers', [\App\Http\Controllers\Api\OrderController::class, 'assignFarmers']);
     });
+
+    // Buyer Order routes
+    Route::post('/orders', [\App\Http\Controllers\Api\OrderController::class, 'store']);
+    Route::get('/orders/buyer', [\App\Http\Controllers\Api\OrderController::class, 'buyerOrders']);
+
+    // Farmer Order routes
+    Route::get('/orders/farmer', [\App\Http\Controllers\Api\OrderController::class, 'farmerOrders']);
 });
