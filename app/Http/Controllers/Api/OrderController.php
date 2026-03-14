@@ -151,4 +151,62 @@ class OrderController extends Controller
             'orders' => $orders,
         ]);
     }
+
+    /**
+     * Cancel order (Buyer side)
+     */
+    public function cancelOrder(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'nullable|string',
+        ]);
+
+        $order = $request->user()->orders()->findOrFail($id);
+
+        if ($order->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot cancel a completed order.',
+            ], 422);
+        }
+
+        $order->update([
+            'status' => 'cancelled',
+            'cancel_reason' => $request->reason,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order cancelled successfully.',
+            'order' => $order,
+        ]);
+    }
+
+    /**
+     * Accept/Reject/Complete order (Farmer side)
+     */
+    public function updateFarmerStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:accepted,rejected,completed',
+            'notes' => 'nullable|string',
+        ]);
+
+        $farmer = $request->user();
+        $order = $farmer->assignedOrders()->findOrFail($id);
+
+        $farmer->assignedOrders()->updateExistingPivot($order->id, [
+            'status' => $request->status,
+            'farmer_notes' => $request->notes,
+        ]);
+
+        // If all assigned farmers complete their part, mark the main order as completed (optional logic)
+        // For now, just update the pivot status
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order status updated successfully.',
+            'status' => $request->status,
+        ]);
+    }
 }

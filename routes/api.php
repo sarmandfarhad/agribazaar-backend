@@ -51,7 +51,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Buyer Order routes
     Route::post('/orders', [\App\Http\Controllers\Api\OrderController::class, 'store']);
     Route::get('/orders/buyer', [\App\Http\Controllers\Api\OrderController::class, 'buyerOrders']);
+    Route::post('/orders/{id}/cancel', [\App\Http\Controllers\Api\OrderController::class, 'cancelOrder']);
 
     // Farmer Order routes
     Route::get('/orders/farmer', [\App\Http\Controllers\Api\OrderController::class, 'farmerOrders']);
+    Route::post('/orders/{id}/respond', [\App\Http\Controllers\Api\OrderController::class, 'updateFarmerStatus']);
 });

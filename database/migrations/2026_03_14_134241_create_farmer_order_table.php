@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('order_id');
             $table->unsignedBigInteger('farmer_id');
-            $table->string('status')->default('assigned'); // assigned, completed, etc.
+            $table->string('status')->default('pending'); // pending, assigned, completed, cancelled
+            $table->text('cancel_reason')->nullable();
+            $table->text('address')->nullable();
             $table->timestamps();
 
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
