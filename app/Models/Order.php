@@ -13,6 +13,7 @@ class Order extends Model
         'address',
         'city',
         'phone',
+        'cancel_reason',
     ];
 
     public function buyer()
