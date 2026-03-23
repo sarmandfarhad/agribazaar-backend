@@ -32,4 +32,8 @@ class Order extends Model
                     ->withPivot('status')
                     ->withTimestamps();
     }
+    public function feedback()
+    {
+        return $this->hasMany(OrderFeedback::class);
+    }
 }

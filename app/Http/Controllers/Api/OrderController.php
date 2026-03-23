@@ -109,12 +109,13 @@ class OrderController extends Controller
         // Verify all IDs are farmers
         $farmers = User::whereIn('id', $request->farmer_ids)
                        ->where('user_type', 'farmer')
+                       ->where('status', 'approved')
                        ->get();
 
         if ($farmers->count() !== count($request->farmer_ids)) {
              return response()->json([
                 'success' => false,
-                'message' => 'Some of the provided IDs are not valid farmers.',
+                'message' => 'Some of the provided IDs are not valid or not approved farmers.',
             ], 422);
         }
 
@@ -226,6 +227,42 @@ class OrderController extends Controller
             'success' => true,
             'message' => 'Order status updated successfully.',
             'status' => $request->status,
+        ]);
+    }
+
+    /**
+     * Submit feedback for an order (Buyer side)
+     */
+    public function submitOrderFeedback(Request $request, $id)
+    {
+        $request->validate([
+            'problem_type' => 'required|string',
+            'priority' => 'required|in:low,medium,high',
+            'description' => 'required|string',
+        ]);
+
+        $order = Order::findOrFail($id);
+
+        // Optional: Ensure the order is completed (or at least exists for this buyer)
+        if ($order->buyer_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.',
+            ], 403);
+        }
+
+        $feedback = \App\Models\OrderFeedback::create([
+            'order_id' => $id,
+            'user_id' => $request->user()->id,
+            'problem_type' => $request->problem_type,
+            'priority' => $request->priority,
+            'description' => $request->description,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Feedback submitted successfully.',
+            'feedback' => $feedback,
         ]);
     }
 }
