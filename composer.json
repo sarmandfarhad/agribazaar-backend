@@ -18,7 +18,8 @@
         "symfony/event-dispatcher": "^6.3",
         "symfony/string": "^6.3",
         "symfony/translation": "^6.3",
-        "symfony/yaml": "^6.3"
+        "symfony/yaml": "^6.3",
+        "symfony/filesystem": "^6.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
