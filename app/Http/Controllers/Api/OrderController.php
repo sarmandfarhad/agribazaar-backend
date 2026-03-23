@@ -265,4 +265,17 @@ class OrderController extends Controller
             'feedback' => $feedback,
         ]);
     }
+
+    /**
+     * Get all order feedback (Admin side)
+     */
+    public function allFeedback(Request $request)
+    {
+        $feedback = \App\Models\OrderFeedback::with(['order', 'user'])->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'feedback' => $feedback,
+        ]);
+    }
 }
