@@ -134,6 +134,17 @@ class OrderController extends Controller
     public function buyerOrders(Request $request)
     {
         $orders = $request->user()->orders()->with(['items.product', 'farmers.farmer'])->get();
+
+        $orders->each(function($order) {
+            // If the order has been accepted/completed, narrow the view to only show those farmers
+            if (in_array($order->status, ['accepted', 'completed'])) {
+                $filteredFarmers = $order->farmers->filter(function($farmer) {
+                    return in_array($farmer->pivot->status, ['accepted', 'completed']);
+                });
+                $order->setRelation('farmers', $filteredFarmers);
+            }
+        });
+
         return response()->json([
             'success' => true,
             'orders' => $orders,
@@ -200,8 +211,16 @@ class OrderController extends Controller
             'farmer_notes' => $request->notes,
         ]);
 
-        // If all assigned farmers complete their part, mark the main order as completed (optional logic)
-        // For now, just update the pivot status
+        // If a farmer accepts, update the main order status to 'accepted'
+        if ($request->status === 'accepted') {
+            $order->update(['status' => 'accepted']);
+        }
+
+        // If a farmer completes, and maybe we want to check if all are done?
+        // Let's keep it simple: if any farmer completes, the order could be marked as completed
+        if ($request->status === 'completed') {
+            $order->update(['status' => 'completed']);
+        }
 
         return response()->json([
             'success' => true,
