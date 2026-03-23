@@ -133,7 +133,7 @@ class OrderController extends Controller
      */
     public function buyerOrders(Request $request)
     {
-        $orders = $request->user()->orders()->with('items.product')->get();
+        $orders = $request->user()->orders()->with(['items.product', 'farmers.farmer'])->get();
         return response()->json([
             'success' => true,
             'orders' => $orders,
