@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Order management (Admin)
         Route::get('/orders', [\App\Http\Controllers\Api\OrderController::class, 'index']);
+        Route::post('/orders', [\App\Http\Controllers\Api\OrderController::class, 'adminStore']);
         Route::post('/orders/{id}/assign-farmers', [\App\Http\Controllers\Api\OrderController::class, 'assignFarmers']);
         Route::post('/orders/{id}/update-status', [\App\Http\Controllers\Api\OrderController::class, 'adminUpdateStatus']);
         Route::get('/feedback', [\App\Http\Controllers\Api\OrderController::class, 'allFeedback']);

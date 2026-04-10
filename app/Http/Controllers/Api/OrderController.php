@@ -20,12 +20,12 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'items' => 'required|array|min:1',
+            'items'              => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'address' => 'required|string',
-            'city' => 'required|string',
-            'phone' => 'nullable|string',
+            'items.*.quantity'   => 'required|numeric|min:0.01',
+            'address'            => 'required|string',
+            'city'               => 'required|string',
+            'phone'              => 'nullable|string',
         ]);
 
         try {
@@ -42,18 +42,18 @@ class OrderController extends Controller
 
                 $orderItems[] = [
                     'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'price' => $price,
+                    'quantity'   => $item['quantity'],
+                    'price'      => $price,
                 ];
             }
 
             $order = Order::create([
-                'buyer_id' => $request->user()->id,
+                'buyer_id'     => $request->user()->id,
                 'total_amount' => $totalAmount,
-                'status' => 'pending',
-                'address' => $request->address,
-                'city' => $request->city,
-                'phone' => $request->phone ?? $request->user()->phone,
+                'status'       => 'pending',
+                'address'      => $request->address,
+                'city'         => $request->city,
+                'phone'        => $request->phone ?? $request->user()->phone,
             ]);
 
             foreach ($orderItems as $item) {
@@ -66,12 +66,92 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Order placed successfully.',
-                'order' => $order->load('items.product'),
+                'order'   => $order->load('items.product'),
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Order placement failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to place order. ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new order for a specific buyer (Admin side)
+     */
+    public function adminStore(Request $request)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can place orders for users.'
+            ], 403);
+        }
+
+        $request->validate([
+            'buyer_id'           => 'required|exists:users,id',
+            'items'              => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity'   => 'required|numeric|min:0.01',
+            'address'            => 'nullable|string',
+            'city'               => 'nullable|string',
+            'phone'              => 'nullable|string',
+        ]);
+
+        $buyer = User::findOrFail($request->buyer_id);
+
+        try {
+            DB::beginTransaction();
+
+            $totalAmount = 0;
+            $orderItems = [];
+
+            foreach ($request->items as $item) {
+                $product = Product::findOrFail($item['product_id']);
+                $price = $product->price_per_kilo;
+                $lineTotal = $price * $item['quantity'];
+                $totalAmount += $lineTotal;
+
+                $orderItems[] = [
+                    'product_id' => $item['product_id'],
+                    'quantity'   => $item['quantity'],
+                    'price'      => $price,
+                ];
+            }
+
+            // Fallback to buyer's profile if fields are missing
+            $address = $request->address ?? ($buyer->buyer->address ?? '');
+            $city = $request->city ?? ($buyer->buyer->city ?? '');
+            $phone = $request->phone ?? $buyer->phone;
+
+            $order = Order::create([
+                'buyer_id'     => $buyer->id,
+                'total_amount' => $totalAmount,
+                'status'       => 'pending',
+                'address'      => $address,
+                'city'         => $city,
+                'phone'        => $phone,
+            ]);
+
+            foreach ($orderItems as $item) {
+                $item['order_id'] = $order->id;
+                OrderItem::create($item);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order placed for user successfully.',
+                'order'   => $order->load('items.product'),
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Admin order placement failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to place order. ' . $e->getMessage(),
