@@ -195,12 +195,12 @@ class OrderController extends Controller
     }
 
     /**
-     * Accept/Reject/Complete order (Farmer side)
+     * Accept/Reject order (Farmer side)
      */
     public function updateFarmerStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:accepted,rejected,completed',
+            'status' => 'required|in:accepted,rejected',
             'notes' => 'nullable|string',
         ]);
 
@@ -217,16 +217,37 @@ class OrderController extends Controller
             $order->update(['status' => 'accepted']);
         }
 
-        // If a farmer completes, and maybe we want to check if all are done?
-        // Let's keep it simple: if any farmer completes, the order could be marked as completed
-        if ($request->status === 'completed') {
-            $order->update(['status' => 'completed']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Your status for this order has been updated.',
+            'status' => $request->status,
+        ]);
+    }
+
+    /**
+     * Update order status (Admin side)
+     */
+    public function adminUpdateStatus(Request $request, $id)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can update global order status.'
+            ], 403);
         }
+
+        $request->validate([
+            'status' => 'required|in:delivered_to_stock,completed',
+        ]);
+
+        $order = Order::findOrFail($id);
+        
+        $order->update(['status' => $request->status]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Order status updated successfully.',
-            'status' => $request->status,
+            'message' => 'Order status updated by admin.',
+            'order' => $order
         ]);
     }
 
