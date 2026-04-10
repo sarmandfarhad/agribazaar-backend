@@ -64,9 +64,9 @@ class Product extends Model
     {
         return [
             'price_per_kilo' => 'decimal:2',
-            'quantity'       => 'integer',
+            'quantity'       => 'decimal:2',
             'total_orders'   => 'integer',
-            'total_quantity' => 'integer',
+            'total_quantity' => 'decimal:2',
         ];
     }
 }
