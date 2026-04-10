@@ -12,4 +12,16 @@ class Category extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    /**
+     * Scope a query to search categories by name.
+     */
+    public function scopeSearch($query, $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where('name', 'ILIKE', '%' . $search . '%');
+    }
 }

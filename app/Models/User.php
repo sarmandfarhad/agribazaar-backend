@@ -93,4 +93,28 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Scope a query to search users by phone, email, or name.
+     */
+    public function scopeSearch($query, $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($search) {
+            $q->where('phone', 'ILIKE', '%' . $search . '%')
+              ->orWhere('email', 'ILIKE', '%' . $search . '%')
+              ->orWhereHas('farmer', function($sub) use ($search) {
+                  $sub->where('first_name', 'ILIKE', '%' . $search . '%')
+                      ->orWhere('second_name', 'ILIKE', '%' . $search . '%');
+              })
+              ->orWhereHas('buyer', function($sub) use ($search) {
+                  $sub->where('first_name', 'ILIKE', '%' . $search . '%')
+                      ->orWhere('second_name', 'ILIKE', '%' . $search . '%')
+                      ->orWhere('business_name', 'ILIKE', '%' . $search . '%');
+              });
+        });
+    }
 }

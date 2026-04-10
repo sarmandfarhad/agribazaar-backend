@@ -69,4 +69,35 @@ class Product extends Model
             'total_quantity' => 'decimal:2',
         ];
     }
+
+    /**
+     * Scope a query to search products by title or information.
+     */
+    public function scopeSearch($query, $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        $search = trim($search);
+
+        return $query->where(function ($q) use ($search) {
+            $q->where('title', 'ILIKE', '%' . $search . '%')
+              ->orWhere('information', 'ILIKE', '%' . $search . '%')
+              ->orWhereHas('category', function ($sub) use ($search) {
+                  $sub->where('name', 'ILIKE', '%' . $search . '%');
+              });
+            
+            // Split by space to search individual words if there are multiple
+            $words = array_filter(explode(' ', $search));
+            if (count($words) > 1) {
+                foreach ($words as $word) {
+                    if (strlen($word) > 2) {
+                        $q->orWhere('title', 'ILIKE', '%' . $word . '%')
+                          ->orWhere('information', 'ILIKE', '%' . $word . '%');
+                    }
+                }
+            }
+        });
+    }
 }

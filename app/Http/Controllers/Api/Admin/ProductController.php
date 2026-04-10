@@ -19,7 +19,7 @@ class ProductController extends Controller
         $query = Product::with(['category', 'images']);
 
         if ($request->has('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+            $query->search($request->search);
         }
 
         if ($request->has('category_id')) {

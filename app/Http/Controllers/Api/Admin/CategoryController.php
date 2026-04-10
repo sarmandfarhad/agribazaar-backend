@@ -16,7 +16,7 @@ class CategoryController extends Controller
         $query = Category::query();
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->search($request->search);
         }
 
         $categories = $query->latest()->get();

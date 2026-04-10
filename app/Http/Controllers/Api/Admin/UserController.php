@@ -24,9 +24,18 @@ class UserController extends Controller
             ], 403);
         }
 
-        $users = User::with(['farmer', 'buyer'])
-            ->whereIn('user_type', ['farmer', 'buyer'])
-            ->get()
+        $query = User::with(['farmer', 'buyer'])
+            ->whereIn('user_type', ['farmer', 'buyer']);
+
+        if ($request->has('search')) {
+            $query->search($request->search);
+        }
+
+        if ($request->has('user_type')) {
+            $query->where('user_type', $request->user_type);
+        }
+
+        $users = $query->latest()->get()
             ->map(function ($user) {
                 return [
                     'id'        => $user->id,

@@ -21,7 +21,7 @@ class ProductController extends Controller
         }
 
         if ($request->has('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+            $query->search($request->search);
         }
 
         $products = $query->latest()->get();

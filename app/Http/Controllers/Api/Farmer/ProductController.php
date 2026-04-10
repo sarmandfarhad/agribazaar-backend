@@ -133,9 +133,16 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $farmer = $request->user()->farmer;
-        $products = FarmerProduct::with('product')
-            ->where('farmer_id', $farmer->id)
-            ->get();
+        $query = FarmerProduct::with('product')
+            ->where('farmer_id', $farmer->id);
+
+        if ($request->has('search')) {
+            $query->whereHas('product', function ($q) use ($request) {
+                $q->search($request->search);
+            });
+        }
+
+        $products = $query->get();
 
         return response()->json([
             'success' => true,
