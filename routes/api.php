@@ -47,6 +47,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [\App\Http\Controllers\Api\OrderController::class, 'index']);
         Route::post('/orders/{id}/assign-farmers', [\App\Http\Controllers\Api\OrderController::class, 'assignFarmers']);
         Route::get('/feedback', [\App\Http\Controllers\Api\OrderController::class, 'allFeedback']);
+
+        // Farmer Product management (Admin)
+        Route::get('/farmer-products', [\App\Http\Controllers\Api\Admin\FarmerProductController::class, 'index']);
+        Route::post('/farmer-products', [\App\Http\Controllers\Api\Admin\FarmerProductController::class, 'store']);
+        Route::match(['PUT', 'PATCH'], '/farmer-products/{id}', [\App\Http\Controllers\Api\Admin\FarmerProductController::class, 'update']);
+        Route::delete('/farmer-products/{id}', [\App\Http\Controllers\Api\Admin\FarmerProductController::class, 'destroy']);
+        Route::post('/farmer-products/{id}/rate', [\App\Http\Controllers\Api\Admin\FarmerProductController::class, 'rate']);
     });
 
     // Buyer Order routes
@@ -58,4 +65,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/farmer', [\App\Http\Controllers\Api\OrderController::class, 'farmerOrders']);
     Route::post('/orders/{id}/respond', [\App\Http\Controllers\Api\OrderController::class, 'updateFarmerStatus']);
     Route::post('/orders/{id}/feedback', [\App\Http\Controllers\Api\OrderController::class, 'submitOrderFeedback']);
+
+    // Farmer Product routes
+    Route::post('/farmer/products', [\App\Http\Controllers\Api\Farmer\ProductController::class, 'store']);
+    Route::get('/farmer/products', [\App\Http\Controllers\Api\Farmer\ProductController::class, 'index']);
+    Route::match(['PUT', 'PATCH'], '/farmer/products/{id}', [\App\Http\Controllers\Api\Farmer\ProductController::class, 'update']);
+    Route::delete('/farmer/products/{id}', [\App\Http\Controllers\Api\Farmer\ProductController::class, 'destroy']);
 });

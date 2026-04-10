@@ -33,6 +33,11 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
+    public function farmerProducts()
+    {
+        return $this->hasMany(FarmerProduct::class);
+    }
+
     /**
      * Get the URL for the product image.
      *
