@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin routes
     Route::prefix('admin')->group(function () {
         Route::get('/users', [\App\Http\Controllers\Api\Admin\UserController::class, 'index']);
+        Route::post('/users', [\App\Http\Controllers\Api\Admin\UserController::class, 'store']);
         Route::patch('/users/{user}/status', [\App\Http\Controllers\Api\Admin\UserController::class, 'updateStatus']);
 
         // Product management
