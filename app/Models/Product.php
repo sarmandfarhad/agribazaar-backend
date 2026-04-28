@@ -13,7 +13,9 @@ class Product extends Model
      */
     protected $fillable = [
         'title',
-        'price_per_kilo',
+        'price_good',
+        'price_normal',
+        'price_bad',
         'image',
         'quantity',
         'information',
@@ -63,7 +65,9 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'price_per_kilo' => 'decimal:2',
+            'price_good'   => 'decimal:2',
+            'price_normal' => 'decimal:2',
+            'price_bad'    => 'decimal:2',
             'quantity'       => 'decimal:2',
             'total_orders'   => 'integer',
             'total_quantity' => 'decimal:2',

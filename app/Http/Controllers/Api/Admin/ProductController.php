@@ -64,7 +64,9 @@ class ProductController extends Controller
 
         $request->validate([
             'title'          => 'required|string|max:255',
-            'price_per_kilo' => 'required|numeric|min:0',
+            'price_good'     => 'required|numeric|min:0',
+            'price_normal'   => 'required|numeric|min:0',
+            'price_bad'      => 'required|numeric|min:0',
             'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Primary image
             'media'          => 'nullable|array', // Sub-images
             'media.*'        => 'image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -83,7 +85,9 @@ class ProductController extends Controller
 
         $product = Product::create([
             'title'          => $request->title,
-            'price_per_kilo' => $request->price_per_kilo,
+            'price_good'     => $request->price_good,
+            'price_normal'   => $request->price_normal,
+            'price_bad'      => $request->price_bad,
             'image'          => $imagePath,
             'quantity'       => $request->quantity,
             'information'    => $request->information,
@@ -126,7 +130,9 @@ class ProductController extends Controller
 
         $request->validate([
             'title'          => 'sometimes|required|string|max:255',
-            'price_per_kilo' => 'sometimes|required|numeric|min:0',
+            'price_good'     => 'sometimes|required|numeric|min:0',
+            'price_normal'   => 'sometimes|required|numeric|min:0',
+            'price_bad'      => 'sometimes|required|numeric|min:0',
             'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'media'          => 'nullable|array',
             'media.*'        => 'image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -141,7 +147,7 @@ class ProductController extends Controller
         ]);
 
         $data = $request->only([
-            'title', 'price_per_kilo', 'quantity', 'information', 'total_orders', 'total_quantity', 'category_id', 'status'
+            'title', 'price_good', 'price_normal', 'price_bad', 'quantity', 'information', 'total_orders', 'total_quantity', 'category_id', 'status'
         ]);
 
         if ($request->hasFile('image')) {

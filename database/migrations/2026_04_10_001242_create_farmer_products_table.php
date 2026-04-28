@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('farmer_id')->constrained()->onDelete('cascade');
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->decimal('quantity', 12, 2);
-            $table->integer('rating')->nullable();
+            $table->enum('rating', ['good', 'normal', 'bad'])->nullable();
             $table->timestamps();
         });
     }

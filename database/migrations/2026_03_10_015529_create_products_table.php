@@ -14,7 +14,9 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->decimal('price_per_kilo', 10, 2);
+            $table->decimal('price_good', 10, 2);
+            $table->decimal('price_normal', 10, 2);
+            $table->decimal('price_bad', 10, 2);
             $table->string('image')->nullable(); // Primary image
             $table->integer('quantity');
             $table->text('information');

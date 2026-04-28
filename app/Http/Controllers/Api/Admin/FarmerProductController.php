@@ -27,6 +27,7 @@ class FarmerProductController extends Controller
             'farmer_id'  => 'required|exists:farmers,id',
             'product_id' => 'required|exists:products,id',
             'quantity'   => 'required|numeric|min:0',
+            'rating'     => 'nullable|in:good,normal,bad',
         ]);
 
         try {
@@ -36,12 +37,17 @@ class FarmerProductController extends Controller
                     ->first();
 
                 if ($farmerProduct) {
-                    $farmerProduct->increment('quantity', $request->quantity);
+                    $farmerProduct->quantity += $request->quantity;
+                    if ($request->has('rating')) {
+                        $farmerProduct->rating = $request->rating;
+                    }
+                    $farmerProduct->save();
                 } else {
                     FarmerProduct::create([
                         'farmer_id' => $request->farmer_id,
                         'product_id' => $request->product_id,
                         'quantity' => $request->quantity,
+                        'rating' => $request->rating,
                     ]);
                 }
 
@@ -75,7 +81,7 @@ class FarmerProductController extends Controller
         }
 
         $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
+            'rating' => 'required|in:good,normal,bad',
         ]);
 
         $farmerProduct = FarmerProduct::findOrFail($id);
@@ -102,11 +108,15 @@ class FarmerProductController extends Controller
 
         $request->validate([
             'quantity' => 'required|numeric|min:0',
+            'rating'   => 'nullable|in:good,normal,bad',
         ]);
 
         try {
             DB::transaction(function () use ($farmerProduct, $request) {
-                $farmerProduct->update(['quantity' => $request->quantity]);
+                $farmerProduct->update([
+                    'quantity' => $request->quantity,
+                    'rating'   => $request->rating ?? $farmerProduct->rating,
+                ]);
 
                 $totalQuantity = FarmerProduct::where('product_id', $farmerProduct->product_id)->sum('quantity');
                 Product::where('id', $farmerProduct->product_id)->update(['total_quantity' => $totalQuantity]);
