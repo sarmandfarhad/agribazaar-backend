@@ -107,16 +107,25 @@ class FarmerProductController extends Controller
         $farmerProduct = FarmerProduct::findOrFail($id);
 
         $request->validate([
-            'quantity' => 'required|numeric|min:0',
+            'quantity' => 'nullable|numeric|min:0',
             'rating'   => 'nullable|in:good,normal,bad',
         ]);
 
         try {
             DB::transaction(function () use ($farmerProduct, $request) {
-                $farmerProduct->update([
-                    'quantity' => $request->quantity,
-                    'rating'   => $request->rating ?? $farmerProduct->rating,
-                ]);
+                $updateData = [];
+
+                if ($request->filled('quantity')) {
+                    $updateData['quantity'] = $request->quantity;
+                }
+
+                if ($request->has('rating')) {
+                    $updateData['rating'] = $request->rating;
+                }
+
+                if (!empty($updateData)) {
+                    $farmerProduct->update($updateData);
+                }
 
                 $totalQuantity = FarmerProduct::where('product_id', $farmerProduct->product_id)->sum('quantity');
                 Product::where('id', $farmerProduct->product_id)->update(['total_quantity' => $totalQuantity]);
