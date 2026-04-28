@@ -24,6 +24,7 @@ class OrderController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity'   => 'required|numeric|min:0.01',
             'items.*.quality'    => 'required|in:good,normal,bad',
+            'items.*.price'      => 'required|numeric|min:0',
             'address'            => 'required|string',
             'city'               => 'required|string',
             'phone'              => 'nullable|string',
@@ -36,9 +37,8 @@ class OrderController extends Controller
             $orderItems = [];
 
             foreach ($request->items as $item) {
-                $product = Product::findOrFail($item['product_id']);
                 $quality = $item['quality'];
-                $price = $product->{'price_' . $quality};
+                $price = $item['price'];
                 $lineTotal = $price * $item['quantity'];
                 $totalAmount += $lineTotal;
 
@@ -71,7 +71,6 @@ class OrderController extends Controller
                 'message' => 'Order placed successfully.',
                 'order'   => $order->load('items.product'),
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Order placement failed: ' . $e->getMessage());
@@ -100,6 +99,7 @@ class OrderController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity'   => 'required|numeric|min:0.01',
             'items.*.quality'    => 'required|in:good,normal,bad',
+            'items.*.price'      => 'required|numeric|min:0',
             'address'            => 'nullable|string',
             'city'               => 'nullable|string',
             'phone'              => 'nullable|string',
@@ -114,9 +114,8 @@ class OrderController extends Controller
             $orderItems = [];
 
             foreach ($request->items as $item) {
-                $product = Product::findOrFail($item['product_id']);
                 $quality = $item['quality'];
-                $price = $product->{'price_' . $quality};
+                $price = $item['price'];
                 $lineTotal = $price * $item['quantity'];
                 $totalAmount += $lineTotal;
 
@@ -154,7 +153,6 @@ class OrderController extends Controller
                 'message' => 'Order placed for user successfully.',
                 'order'   => $order->load('items.product'),
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Admin order placement failed: ' . $e->getMessage());
@@ -171,8 +169,8 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $orders = Order::with(['buyer', 'items.product', 'farmers'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -194,12 +192,12 @@ class OrderController extends Controller
 
         // Verify all IDs are farmers
         $farmers = User::whereIn('id', $request->farmer_ids)
-                       ->where('user_type', 'farmer')
-                       ->where('status', 'approved')
-                       ->get();
+            ->where('user_type', 'farmer')
+            ->where('status', 'approved')
+            ->get();
 
         if ($farmers->count() !== count($request->farmer_ids)) {
-             return response()->json([
+            return response()->json([
                 'success' => false,
                 'message' => 'Some of the provided IDs are not valid or not approved farmers.',
             ], 422);
@@ -222,10 +220,10 @@ class OrderController extends Controller
     {
         $orders = $request->user()->orders()->with(['items.product', 'farmers.farmer'])->get();
 
-        $orders->each(function($order) {
+        $orders->each(function ($order) {
             // If the order has been accepted/completed, narrow the view to only show those farmers
             if (in_array($order->status, ['accepted', 'completed'])) {
-                $filteredFarmers = $order->farmers->filter(function($farmer) {
+                $filteredFarmers = $order->farmers->filter(function ($farmer) {
                     return in_array($farmer->pivot->status, ['accepted', 'completed']);
                 });
                 $order->setRelation('farmers', $filteredFarmers);
