@@ -23,6 +23,7 @@ class OrderController extends Controller
             'items'              => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity'   => 'required|numeric|min:0.01',
+            'items.*.quality'    => 'required|in:good,normal,bad',
             'address'            => 'required|string',
             'city'               => 'required|string',
             'phone'              => 'nullable|string',
@@ -36,7 +37,8 @@ class OrderController extends Controller
 
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
-                $price = $product->price_per_kilo;
+                $quality = $item['quality'];
+                $price = $product->{'price_' . $quality};
                 $lineTotal = $price * $item['quantity'];
                 $totalAmount += $lineTotal;
 
@@ -44,6 +46,7 @@ class OrderController extends Controller
                     'product_id' => $item['product_id'],
                     'quantity'   => $item['quantity'],
                     'price'      => $price,
+                    'quality'    => $quality,
                 ];
             }
 
@@ -96,6 +99,7 @@ class OrderController extends Controller
             'items'              => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity'   => 'required|numeric|min:0.01',
+            'items.*.quality'    => 'required|in:good,normal,bad',
             'address'            => 'nullable|string',
             'city'               => 'nullable|string',
             'phone'              => 'nullable|string',
@@ -111,7 +115,8 @@ class OrderController extends Controller
 
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
-                $price = $product->price_per_kilo;
+                $quality = $item['quality'];
+                $price = $product->{'price_' . $quality};
                 $lineTotal = $price * $item['quantity'];
                 $totalAmount += $lineTotal;
 
@@ -119,6 +124,7 @@ class OrderController extends Controller
                     'product_id' => $item['product_id'],
                     'quantity'   => $item['quantity'],
                     'price'      => $price,
+                    'quality'    => $quality,
                 ];
             }
 
