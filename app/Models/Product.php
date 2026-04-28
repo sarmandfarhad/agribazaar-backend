@@ -55,7 +55,43 @@ class Product extends Model
      *
      * @var array
      */
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'good_quantity', 'normal_quantity', 'bad_quantity'];
+
+    /**
+     * Get the good quality quantity for this product.
+     */
+    public function getGoodQuantityAttribute(): float
+    {
+        if ($this->relationLoaded('farmerProducts')) {
+            return (float) $this->farmerProducts->where('rating', 'good')->sum('quantity');
+        }
+
+        return (float) $this->farmerProducts()->where('rating', 'good')->sum('quantity');
+    }
+
+    /**
+     * Get the normal quality quantity for this product.
+     */
+    public function getNormalQuantityAttribute(): float
+    {
+        if ($this->relationLoaded('farmerProducts')) {
+            return (float) $this->farmerProducts->where('rating', 'normal')->sum('quantity');
+        }
+
+        return (float) $this->farmerProducts()->where('rating', 'normal')->sum('quantity');
+    }
+
+    /**
+     * Get the bad quality quantity for this product.
+     */
+    public function getBadQuantityAttribute(): float
+    {
+        if ($this->relationLoaded('farmerProducts')) {
+            return (float) $this->farmerProducts->where('rating', 'bad')->sum('quantity');
+        }
+
+        return (float) $this->farmerProducts()->where('rating', 'bad')->sum('quantity');
+    }
 
     /**
      * Get the attributes that should be cast.

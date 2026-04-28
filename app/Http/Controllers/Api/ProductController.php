@@ -13,7 +13,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'images'])
+        $query = Product::with(['category', 'images', 'farmerProducts'])
             ->where('status', '!=', 'inactive'); // Show active and out_of_stock
 
         if ($request->has('category_id')) {
@@ -25,6 +25,7 @@ class ProductController extends Controller
         }
 
         $products = $query->latest()->get();
+        $products->each->setHidden(['farmerProducts']);
 
         return response()->json([
             'success' => true,
@@ -44,9 +45,12 @@ class ProductController extends Controller
             ], 404);
         }
 
+        $product->load(['category', 'images', 'farmerProducts']);
+        $product->setHidden(['farmerProducts']);
+
         return response()->json([
             'success' => true,
-            'product' => $product->load(['category', 'images'])
+            'product' => $product
         ]);
     }
 }
