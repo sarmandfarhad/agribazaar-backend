@@ -22,8 +22,21 @@ Route::prefix('auth')->group(function () {
 // Protected routes (require auth:sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
+        $user = $request->user();
+        $profile = null;
+
+        if ($user->user_type === 'farmer') {
+            $user->load('farmer');
+            $profile = $user->farmer;
+        } elseif ($user->user_type === 'buyer') {
+            $user->load('buyer');
+            $profile = $user->buyer;
+        }
+
+        $user->profile = $profile; // Attach to user object
+
         return response()->json([
-            'user' => $request->user()->load('profile')
+            'user' => $user
         ]);
     });
     Route::get('/me', [AuthController::class, 'me']);
