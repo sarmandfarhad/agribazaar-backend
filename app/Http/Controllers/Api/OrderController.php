@@ -185,7 +185,7 @@ class OrderController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
-        
+
         // Verify all IDs are farmers
         $farmers = User::whereIn('id', $request->farmer_ids)
                        ->where('user_type', 'farmer')
@@ -321,7 +321,7 @@ class OrderController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
-        
+
         $order->update(['status' => $request->status]);
 
         return response()->json([

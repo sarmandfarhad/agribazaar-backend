@@ -21,6 +21,11 @@ Route::prefix('auth')->group(function () {
 
 // Protected routes (require auth:sanctum)
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return response()->json([
+            'user' => $request->user()->load('profile')
+        ]);
+    });
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
