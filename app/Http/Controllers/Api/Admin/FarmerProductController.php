@@ -27,7 +27,7 @@ class FarmerProductController extends Controller
             'farmer_id'  => 'required|exists:farmers,id',
             'product_id' => 'required|exists:products,id',
             'quantity'   => 'required|numeric|min:0',
-            'rating'     => 'nullable|in:good,normal,bad',
+            'rating'     => 'nullable|integer|min:1|max:3',
         ]);
 
         try {
@@ -81,7 +81,7 @@ class FarmerProductController extends Controller
         }
 
         $request->validate([
-            'rating' => 'required|in:good,normal,bad',
+            'rating' => 'required|integer|min:1|max:3',
         ]);
 
         $farmerProduct = FarmerProduct::findOrFail($id);
@@ -108,7 +108,7 @@ class FarmerProductController extends Controller
 
         $request->validate([
             'quantity' => 'nullable|numeric|min:0',
-            'rating'   => 'nullable|in:good,normal,bad',
+            'rating'   => 'nullable|integer|min:1|max:3',
         ]);
 
         try {

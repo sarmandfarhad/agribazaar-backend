@@ -26,7 +26,7 @@ class ProductController extends Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity'   => 'required|numeric|min:0',
-            'rating'     => 'nullable|in:good,normal,bad',
+            'rating'     => 'nullable|integer|min:1|max:3',
         ]);
 
         $farmer = $user->farmer;
@@ -79,7 +79,7 @@ class ProductController extends Controller
 
         $request->validate([
             'quantity' => 'required|numeric|min:0',
-            'rating'   => 'nullable|in:good,normal,bad',
+            'rating'   => 'nullable|integer|min:1|max:3',
         ]);
 
         try {

@@ -40,6 +40,11 @@ class Product extends Model
         return $this->hasMany(FarmerProduct::class);
     }
 
+    public function wishlistedBy()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
     /**
      * Get the URL for the product image.
      *
@@ -63,10 +68,10 @@ class Product extends Model
     public function getGoodQuantityAttribute(): float
     {
         if ($this->relationLoaded('farmerProducts')) {
-            return (float) $this->farmerProducts->where('rating', 'good')->sum('quantity');
+            return (float) $this->farmerProducts->where('rating', 3)->sum('quantity');
         }
 
-        return (float) $this->farmerProducts()->where('rating', 'good')->sum('quantity');
+        return (float) $this->farmerProducts()->where('rating', 3)->sum('quantity');
     }
 
     /**
@@ -75,10 +80,10 @@ class Product extends Model
     public function getNormalQuantityAttribute(): float
     {
         if ($this->relationLoaded('farmerProducts')) {
-            return (float) $this->farmerProducts->where('rating', 'normal')->sum('quantity');
+            return (float) $this->farmerProducts->where('rating', 2)->sum('quantity');
         }
 
-        return (float) $this->farmerProducts()->where('rating', 'normal')->sum('quantity');
+        return (float) $this->farmerProducts()->where('rating', 2)->sum('quantity');
     }
 
     /**
@@ -87,10 +92,10 @@ class Product extends Model
     public function getBadQuantityAttribute(): float
     {
         if ($this->relationLoaded('farmerProducts')) {
-            return (float) $this->farmerProducts->where('rating', 'bad')->sum('quantity');
+            return (float) $this->farmerProducts->where('rating', 1)->sum('quantity');
         }
 
-        return (float) $this->farmerProducts()->where('rating', 'bad')->sum('quantity');
+        return (float) $this->farmerProducts()->where('rating', 1)->sum('quantity');
     }
 
     /**
@@ -123,18 +128,18 @@ class Product extends Model
 
         return $query->where(function ($q) use ($search) {
             $q->where('title', 'ILIKE', '%' . $search . '%')
-              ->orWhere('information', 'ILIKE', '%' . $search . '%')
-              ->orWhereHas('category', function ($sub) use ($search) {
-                  $sub->where('name', 'ILIKE', '%' . $search . '%');
-              });
-            
+                ->orWhere('information', 'ILIKE', '%' . $search . '%')
+                ->orWhereHas('category', function ($sub) use ($search) {
+                    $sub->where('name', 'ILIKE', '%' . $search . '%');
+                });
+
             // Split by space to search individual words if there are multiple
             $words = array_filter(explode(' ', $search));
             if (count($words) > 1) {
                 foreach ($words as $word) {
                     if (strlen($word) > 2) {
                         $q->orWhere('title', 'ILIKE', '%' . $word . '%')
-                          ->orWhere('information', 'ILIKE', '%' . $word . '%');
+                            ->orWhere('information', 'ILIKE', '%' . $word . '%');
                     }
                 }
             }

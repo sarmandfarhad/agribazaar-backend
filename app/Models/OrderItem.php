@@ -14,6 +14,10 @@ class OrderItem extends Model
         'quality',
     ];
 
+    protected $casts = [
+        'quality' => 'integer',
+    ];
+
     public function order()
     {
         return $this->belongsTo(Order::class);

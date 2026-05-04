@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\WishlistController;
 
 // Public Catalog routes
 Route::get('/products', [\App\Http\Controllers\Api\ProductController::class, 'index']);
@@ -92,4 +93,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/farmer/products', [\App\Http\Controllers\Api\Farmer\ProductController::class, 'index']);
     Route::match(['PUT', 'PATCH'], '/farmer/products/{id}', [\App\Http\Controllers\Api\Farmer\ProductController::class, 'update']);
     Route::delete('/farmer/products/{id}', [\App\Http\Controllers\Api\Farmer\ProductController::class, 'destroy']);
+
+    // Wishlist routes
+    Route::get('/wishlist', [WishlistController::class, 'index']);
+    Route::post('/wishlist', [WishlistController::class, 'store']);
+    Route::delete('/wishlist/{productId}', [WishlistController::class, 'destroy']);
 });

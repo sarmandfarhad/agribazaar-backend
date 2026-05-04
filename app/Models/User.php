@@ -81,6 +81,11 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
+    public function wishlist()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

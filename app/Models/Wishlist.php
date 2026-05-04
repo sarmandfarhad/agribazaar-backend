@@ -4,22 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class FarmerProduct extends Model
+class Wishlist extends Model
 {
     protected $fillable = [
-        'farmer_id',
+        'user_id',
         'product_id',
-        'quantity',
-        'rating',
     ];
 
-    protected $casts = [
-        'rating' => 'integer',
-    ];
-
-    public function farmer()
+    public function user()
     {
-        return $this->belongsTo(Farmer::class);
+        return $this->belongsTo(User::class);
     }
 
     public function product()
