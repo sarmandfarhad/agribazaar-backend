@@ -14,7 +14,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::with(['category', 'images', 'farmerProducts'])
-            ->where('status', '!=', 'inactive'); // Show active and out_of_stock
+            ->where('status', '!=', 'inactive');
 
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -24,33 +24,35 @@ class ProductController extends Controller
             $query->search($request->search);
         }
 
-        $products = $query->latest()->get();
-        $products->each->setHidden(['farmerProducts']);
+        $products = $query->latest()->get()->map(function ($product) {
+            $good   = $product->farmerProducts->where('rating', 3)->sum('quantity');
+            $normal = $product->farmerProducts->where('rating', 2)->sum('quantity');
+            $bad    = $product->farmerProducts->where('rating', 1)->sum('quantity');
 
-        return response()->json([
-            'success' => true,
-            'products' => $products
-        ]);
+            $arr = $product->setHidden(['farmerProducts'])->toArray();
+            $arr['good_quantity']   = $good;
+            $arr['normal_quantity'] = $normal;
+            $arr['bad_quantity']    = $bad;
+
+            return $arr;
+        });
+
+        return response()->json(['success' => true, 'products' => $products]);
     }
 
-    /**
-     * Display the specified product.
-     */
     public function show(Product $product)
     {
         if ($product->status === 'inactive') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Product is not available.'
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Product is not available.'], 404);
         }
 
         $product->load(['category', 'images', 'farmerProducts']);
-        $product->setHidden(['farmerProducts']);
 
-        return response()->json([
-            'success' => true,
-            'product' => $product
-        ]);
+        $arr = $product->setHidden(['farmerProducts'])->toArray();
+        $arr['good_quantity']   = $product->farmerProducts->where('rating', 3)->sum('quantity');
+        $arr['normal_quantity'] = $product->farmerProducts->where('rating', 2)->sum('quantity');
+        $arr['bad_quantity']    = $product->farmerProducts->where('rating', 1)->sum('quantity');
+
+        return response()->json(['success' => true, 'product' => $arr]);
     }
 }

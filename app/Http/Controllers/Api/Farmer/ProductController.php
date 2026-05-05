@@ -152,7 +152,15 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->get();
+        $products = $query->get()->map(function ($farmerProduct) {
+            $product = $farmerProduct->product;
+            if ($product && $product->image) {
+                $clean = ltrim($product->image, '/');
+                $prefix = str_starts_with($clean, 'storage/') ? '' : 'storage/';
+                $product->image_url = url($prefix . $clean);
+            }
+            return $farmerProduct;
+        });
 
         return response()->json([
             'success' => true,
