@@ -15,7 +15,17 @@ class ProductImage extends Model
 
     public function getImageUrlAttribute()
     {
-        return $this->image_path ? asset('storage/' . $this->image_path) : null;
+        if (!$this->image_path) {
+            return null;
+        }
+
+        $path = ltrim($this->image_path, '/');
+
+        if (str_starts_with($path, 'storage/')) {
+            $path = substr($path, strlen('storage/'));
+        }
+
+        return route('media.show', ['path' => $path]);
     }
 
     protected $appends = ['image_url'];

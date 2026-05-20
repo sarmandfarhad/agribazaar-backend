@@ -156,8 +156,12 @@ class ProductController extends Controller
             $product = $farmerProduct->product;
             if ($product && $product->image) {
                 $clean = ltrim($product->image, '/');
-                $prefix = str_starts_with($clean, 'storage/') ? '' : 'storage/';
-                $product->image_url = url($prefix . $clean);
+
+                if (str_starts_with($clean, 'storage/')) {
+                    $clean = substr($clean, strlen('storage/'));
+                }
+
+                $product->image_url = route('media.show', ['path' => $clean]);
             }
             return $farmerProduct;
         });

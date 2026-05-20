@@ -4,7 +4,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\WishlistController;
+
+Route::get('/media/{path}', [MediaController::class, 'show'])
+    ->where('path', '.*')
+    ->name('media.show');
 
 // Public Catalog routes
 Route::get('/products', [\App\Http\Controllers\Api\ProductController::class, 'index']);
