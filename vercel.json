@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "echo 'Skip build'",
+  "outputDirectory": ".",
   "framework": null,
   "functions": {
     "api/index.php": {
