@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: agribazaar-backend
+    runtime: php
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: bash render-build.sh
+    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    envVars:
+      - key: APP_NAME
+        value: AgriBazaar
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: error
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: agribazaar-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: agribazaar-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: agribazaar-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: agribazaar-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: agribazaar-db
+          property: password
+      - key: SESSION_DRIVER
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: CACHE_STORE
+        value: database
+
+databases:
+  - name: agribazaar-db
+    plan: free
+    databaseName: agribazaar_db
+    user: agribazaar_user
