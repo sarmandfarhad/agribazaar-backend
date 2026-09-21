@@ -1,12 +1,11 @@
 services:
   - type: web
     name: agribazaar-backend
-    runtime: php
+    runtime: docker
     plan: free
     region: oregon
     rootDir: .
-    buildCommand: bash render-build.sh
-    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: APP_NAME
         value: AgriBazaar
