@@ -28,7 +28,13 @@ putenv('APP_EVENTS_CACHE=' . $storagePath . '/bootstrap/cache/events.php');
 putenv('APP_PACKAGES_CACHE=' . $storagePath . '/bootstrap/cache/packages.php');
 putenv('APP_ROUTES_CACHE=' . $storagePath . '/bootstrap/cache/routes.php');
 putenv('APP_SERVICES_CACHE=' . $storagePath . '/bootstrap/cache/services.php');
+
+$_ENV['SESSION_DRIVER'] = 'cookie';
+$_SERVER['SESSION_DRIVER'] = 'cookie';
 putenv('SESSION_DRIVER=cookie');
+
+$_ENV['CACHE_STORE'] = 'array';
+$_SERVER['CACHE_STORE'] = 'array';
 putenv('CACHE_STORE=array');
 
 try {
