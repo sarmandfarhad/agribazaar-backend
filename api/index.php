@@ -28,6 +28,8 @@ putenv('APP_EVENTS_CACHE=' . $storagePath . '/bootstrap/cache/events.php');
 putenv('APP_PACKAGES_CACHE=' . $storagePath . '/bootstrap/cache/packages.php');
 putenv('APP_ROUTES_CACHE=' . $storagePath . '/bootstrap/cache/routes.php');
 putenv('APP_SERVICES_CACHE=' . $storagePath . '/bootstrap/cache/services.php');
+putenv('SESSION_DRIVER=cookie');
+putenv('CACHE_STORE=array');
 
 try {
     // Bootstrap Laravel and handle the request...
