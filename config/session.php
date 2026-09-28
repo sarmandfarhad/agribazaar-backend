@@ -18,7 +18,8 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    // "?:" also falls back when the variable is set but empty (e.g. on Vercel)
+    'driver' => env('SESSION_DRIVER') ?: 'cookie',
 
     /*
     |--------------------------------------------------------------------------
