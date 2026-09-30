@@ -15,7 +15,11 @@ class OrderItem extends Model
     ];
 
     protected $casts = [
-        'quality' => 'integer',
+        'order_id'   => 'integer',
+        'product_id' => 'integer',
+        'price'      => 'decimal:2',
+        'quantity'   => 'integer',
+        'quality'    => 'integer',
     ];
 
     public function order()

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Farmer;
+use App\Http\Resources\UserResource;
 use App\Models\Buyer;
+use App\Models\Farmer;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -20,8 +22,8 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)
-                    ->where('user_type', 'admin')
-                    ->first();
+            ->where('user_type', 'admin')
+            ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['success' => false, 'message' => 'Invalid email or password.'], 401);
@@ -31,21 +33,11 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Your account is not approved.'], 403);
         }
 
-        $user->tokens()->delete();
-        $token = $user->createToken('admin-token', ['admin'])->plainTextToken;
-        $user->update(['token' => $token]);
-
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
-            'token'   => $token,
-            'user'    => [
-                'id'        => $user->id,
-                'email'     => $user->email,
-                'phone'     => $user->phone,
-                'user_type' => $user->user_type,
-                'status'    => $user->status,
-            ],
+            'token'   => $this->issueToken($user, 'admin-token', ['admin']),
+            'user'    => UserResource::plain($user),
         ]);
     }
 
@@ -62,37 +54,15 @@ class AuthController extends Controller
             'city'        => 'required|string',
         ]);
 
-        $user = User::create([
-            'phone'     => $request->phone,
-            'email'     => $request->email,
-            'password'  => Hash::make($request->password),
-            'user_type' => 'farmer',
-            'status'    => 'pending',
-        ]);
-
-        $farmer = Farmer::create([
-            'user_id'     => $user->id,
-            'first_name'  => $request->first_name,
-            'second_name' => $request->second_name,
-            'address'     => $request->address,
-            'city'        => $request->city,
-        ]);
-
-        $token = $user->createToken('farmer-token')->plainTextToken;
-        $user->update(['token' => $token]);
+        $user = $this->register($request, 'farmer', fn (User $user) => Farmer::create(
+            $request->only(['first_name', 'second_name', 'address', 'city']) + ['user_id' => $user->id]
+        ));
 
         return response()->json([
             'success' => true,
             'message' => 'Farmer registered successfully. Await admin approval.',
-            'token'   => $token,
-            'user'    => [
-                'id'        => $user->id,
-                'phone'     => $user->phone,
-                'email'     => $user->email,
-                'user_type' => $user->user_type,
-                'status'    => $user->status,
-                'profile'   => $farmer,
-            ],
+            'token'   => $user->token,
+            'user'    => UserResource::plain($user),
         ], 201);
     }
 
@@ -110,38 +80,15 @@ class AuthController extends Controller
             'business_name' => 'required|string',
         ]);
 
-        $user = User::create([
-            'phone'     => $request->phone,
-            'email'     => $request->email,
-            'password'  => Hash::make($request->password),
-            'user_type' => 'buyer',
-            'status'    => 'pending',
-        ]);
-
-        $buyer = Buyer::create([
-            'user_id'       => $user->id,
-            'first_name'    => $request->first_name,
-            'second_name'   => $request->second_name,
-            'address'       => $request->address,
-            'city'          => $request->city,
-            'business_name' => $request->business_name,
-        ]);
-
-        $token = $user->createToken('buyer-token')->plainTextToken;
-        $user->update(['token' => $token]);
+        $user = $this->register($request, 'buyer', fn (User $user) => Buyer::create(
+            $request->only(['first_name', 'second_name', 'address', 'city', 'business_name']) + ['user_id' => $user->id]
+        ));
 
         return response()->json([
             'success' => true,
             'message' => 'Buyer registered successfully. Await admin approval.',
-            'token'   => $token,
-            'user'    => [
-                'id'        => $user->id,
-                'phone'     => $user->phone,
-                'email'     => $user->email,
-                'user_type' => $user->user_type,
-                'status'    => $user->status,
-                'profile'   => $buyer,
-            ],
+            'token'   => $user->token,
+            'user'    => UserResource::plain($user),
         ], 201);
     }
 
@@ -154,8 +101,8 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('phone', $request->phone)
-                    ->whereIn('user_type', ['farmer', 'buyer'])
-                    ->first();
+            ->whereIn('user_type', ['farmer', 'buyer'])
+            ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['success' => false, 'message' => 'Invalid phone or password.'], 401);
@@ -169,22 +116,11 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Your account is not approved yet.'], 403);
         }
 
-        $user->tokens()->delete();
-        $token = $user->createToken($user->user_type . '-token')->plainTextToken;
-        $user->update(['token' => $token]);
-
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
-            'token'   => $token,
-            'user'    => [
-                'id'        => $user->id,
-                'phone'     => $user->phone,
-                'email'     => $user->email,
-                'user_type' => $user->user_type,
-                'status'    => $user->status,
-                'profile'   => $user->profile(),
-            ],
+            'token'   => $this->issueToken($user, $user->user_type . '-token'),
+            'user'    => UserResource::plain($user),
         ]);
     }
 
@@ -200,21 +136,62 @@ class AuthController extends Controller
         ]);
     }
 
-    // ─── GET CURRENT USER ──────────────────────────────────────────
+    // ─── CURRENT USER ──────────────────────────────────────────────
+
+    /**
+     * GET /api/user: the full user model with its profile (the app's session check).
+     */
+    public function user(Request $request)
+    {
+        return response()->json([
+            'user' => $request->user()->toArrayWithProfile(),
+        ]);
+    }
+
+    /**
+     * GET /api/me: the compact user object.
+     */
     public function me(Request $request)
     {
-        $user = $request->user();
-
         return response()->json([
             'success' => true,
-            'user'    => [
-                'id'        => $user->id,
-                'phone'     => $user->phone,
-                'email'     => $user->email,
-                'user_type' => $user->user_type,
-                'status'    => $user->status,
-                'profile'   => $user->profile(),
-            ],
+            'user'    => UserResource::plain($request->user()),
         ]);
+    }
+
+    // ─── HELPERS ───────────────────────────────────────────────────
+
+    /**
+     * Creates a pending user of the given type with its profile, and a first token.
+     */
+    private function register(Request $request, string $type, callable $createProfile): User
+    {
+        return DB::transaction(function () use ($request, $type, $createProfile) {
+            $user = User::create([
+                'phone'     => $request->phone,
+                'email'     => $request->email,
+                'password'  => $request->password, // hashed by the model's cast
+                'user_type' => $type,
+                'status'    => 'pending',
+            ]);
+
+            $createProfile($user);
+
+            $user->update(['token' => $user->createToken("{$type}-token")->plainTextToken]);
+
+            return $user;
+        });
+    }
+
+    /**
+     * Replaces the user's tokens with a new one (one active session per user).
+     */
+    private function issueToken(User $user, string $name, array $abilities = ['*']): string
+    {
+        $user->tokens()->delete();
+        $token = $user->createToken($name, $abilities)->plainTextToken;
+        $user->update(['token' => $token]);
+
+        return $token;
     }
 }

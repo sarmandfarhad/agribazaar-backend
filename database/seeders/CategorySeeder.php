@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Category;
 use Illuminate\Database\Seeder;
 
 class CategorySeeder extends Seeder
@@ -12,8 +12,8 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\Category::updateOrCreate(['name' => 'Vegetable'], ['isActive' => true]);
-        \App\Models\Category::updateOrCreate(['name' => 'Fruit'], ['isActive' => true]);
-        \App\Models\Category::updateOrCreate(['name' => 'Grains'], ['isActive' => true]);
+        Category::updateOrCreate(['name' => 'Vegetable'], ['isActive' => true]);
+        Category::updateOrCreate(['name' => 'Fruit'], ['isActive' => true]);
+        Category::updateOrCreate(['name' => 'Grains'], ['isActive' => true]);
     }
 }

@@ -3,342 +3,120 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PlaceOrderRequest;
+use App\Http\Resources\OrderResource;
+use App\Models\Order;
+use App\Models\OrderFeedback;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Product;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-
+/**
+ * Buyer order endpoints, plus the single-order view shared by every user type.
+ */
 class OrderController extends Controller
 {
-    /**
-     * Store a new order (Buyer side)
-     */
-    public function store(Request $request)
+    public function __construct(private OrderService $orders)
     {
-        $request->validate([
-            'items'              => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity'   => 'required|numeric|min:0.01',
-            'items.*.quality'    => 'required|integer|min:1|max:3',
-            'items.*.price'      => 'required|numeric|min:0',
-            'address'            => 'required|string',
-            'city'               => 'required|string',
-            'phone'              => 'nullable|string',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $totalAmount = 0;
-            $orderItems = [];
-
-            foreach ($request->items as $item) {
-                $quality = $item['quality'];
-                $price = $item['price'];
-                $lineTotal = $price * $item['quantity'];
-                $totalAmount += $lineTotal;
-
-                $orderItems[] = [
-                    'product_id' => $item['product_id'],
-                    'quantity'   => $item['quantity'],
-                    'price'      => $price,
-                    'quality'    => $quality,
-                ];
-            }
-
-            $order = Order::create([
-                'buyer_id'     => $request->user()->id,
-                'total_amount' => $totalAmount,
-                'status'       => 'pending',
-                'address'      => $request->address,
-                'city'         => $request->city,
-                'phone'        => $request->phone ?? $request->user()->phone,
-            ]);
-
-            foreach ($orderItems as $item) {
-                $item['order_id'] = $order->id;
-                OrderItem::create($item);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order placed successfully.',
-                'order'   => $order->load('items.product'),
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Order placement failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to place order. ' . $e->getMessage(),
-            ], 500);
-        }
     }
 
     /**
-     * Store a new order for a specific buyer (Admin side)
+     * Place an order (buyers). Prices and the delivery fee are computed on the server.
      */
-    public function adminStore(Request $request)
+    public function store(PlaceOrderRequest $request)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized. Only admins can place orders for users.'
-            ], 403);
-        }
+        $order = $this->orders->place($request->user(), $request->validated());
 
-        $request->validate([
-            'buyer_id'           => 'required|exists:users,id',
-            'items'              => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity'   => 'required|numeric|min:0.01',
-            'items.*.quality'    => 'required|integer|min:1|max:3',
-            'items.*.price'      => 'required|numeric|min:0',
-            'address'            => 'nullable|string',
-            'city'               => 'nullable|string',
-            'phone'              => 'nullable|string',
-        ]);
-
-        $buyer = User::findOrFail($request->buyer_id);
-
-        try {
-            DB::beginTransaction();
-
-            $totalAmount = 0;
-            $orderItems = [];
-
-            foreach ($request->items as $item) {
-                $quality = $item['quality'];
-                $price = $item['price'];
-                $lineTotal = $price * $item['quantity'];
-                $totalAmount += $lineTotal;
-
-                $orderItems[] = [
-                    'product_id' => $item['product_id'],
-                    'quantity'   => $item['quantity'],
-                    'price'      => $price,
-                    'quality'    => $quality,
-                ];
-            }
-
-            // Fallback to buyer's profile if fields are missing
-            $address = $request->address ?? ($buyer->buyer->address ?? '');
-            $city = $request->city ?? ($buyer->buyer->city ?? '');
-            $phone = $request->phone ?? $buyer->phone;
-
-            $order = Order::create([
-                'buyer_id'     => $buyer->id,
-                'total_amount' => $totalAmount,
-                'status'       => 'pending',
-                'address'      => $address,
-                'city'         => $city,
-                'phone'        => $phone,
-            ]);
-
-            foreach ($orderItems as $item) {
-                $item['order_id'] = $order->id;
-                OrderItem::create($item);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order placed for user successfully.',
-                'order'   => $order->load('items.product'),
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Admin order placement failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to place order. ' . $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Order placed successfully.',
+            'order'   => OrderResource::single($order),
+        ], 201);
     }
 
     /**
-     * List all orders (Admin side)
+     * The buyer's orders, newest first.
      */
     public function index(Request $request)
     {
-        $orders = Order::with(['buyer', 'items.product', 'farmers'])
+        $this->orders->confirmDueOrders();
+
+        $orders = $request->user()->orders()
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'orders' => $orders,
-        ]);
-    }
+        OrderResource::prepare($orders);
 
-    /**
-     * Assign farmers to an order (Admin side)
-     */
-    public function assignFarmers(Request $request, $id)
-    {
-        $request->validate([
-            'farmer_ids' => 'required|array|min:1',
-            'farmer_ids.*' => 'required|exists:users,id',
-        ]);
-
-        $order = Order::findOrFail($id);
-
-        // Verify all IDs are farmers
-        $farmers = User::whereIn('id', $request->farmer_ids)
-            ->where('user_type', 'farmer')
-            ->where('status', 'approved')
-            ->get();
-
-        if ($farmers->count() !== count($request->farmer_ids)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Some of the provided IDs are not valid or not approved farmers.',
-            ], 422);
-        }
-
-        $order->farmers()->sync($request->farmer_ids);
-        $order->update(['status' => 'assigned']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Farmers assigned successfully.',
-            'order' => $order->load('farmers'),
-        ]);
-    }
-
-    /**
-     * Get buyer's orders
-     */
-    public function buyerOrders(Request $request)
-    {
-        $orders = $request->user()->orders()->with(['items.product', 'farmers.farmer'])->get();
-
-        $orders->each(function ($order) {
-            // If the order has been accepted/completed, narrow the view to only show those farmers
+        // Once a farmer has accepted, the buyer only sees the farmers who accepted
+        $orders->each(function (Order $order) {
             if (in_array($order->status, ['accepted', 'completed'])) {
-                $filteredFarmers = $order->farmers->filter(function ($farmer) {
-                    return in_array($farmer->pivot->status, ['accepted', 'completed']);
-                });
-                $order->setRelation('farmers', $filteredFarmers);
+                $order->setRelation('farmers', $order->farmers->filter(
+                    fn ($farmer) => in_array($farmer->pivot->status, ['accepted', 'completed'])
+                ));
             }
         });
 
         return response()->json([
             'success' => true,
-            'orders' => $orders,
+            'orders' => OrderResource::many($orders),
         ]);
     }
 
     /**
-     * Get farmer's assigned orders
+     * One order, for the buyer who placed it, a farmer assigned to it once confirmed, or an admin.
      */
-    public function farmerOrders(Request $request)
+    public function show(Request $request, $id)
     {
-        $orders = $request->user()->assignedOrders()->with(['buyer', 'items.product'])->get();
+        $this->orders->confirmDueOrders();
+
+        $user = $request->user();
+        $order = Order::find($id);
+
+        $allowed = $order && (
+            $user->isAdmin()
+            || $order->buyer_id === $user->id
+            || ($user->isFarmer() && $user->assignedOrders()->visibleToFarmers()->whereKey($order->id)->exists())
+        );
+
+        if (!$allowed) {
+            return response()->json(['message' => 'Order not found.'], 404);
+        }
+
         return response()->json([
             'success' => true,
-            'orders' => $orders,
+            'order' => OrderResource::single($order),
         ]);
     }
 
     /**
-     * Cancel order (Buyer side)
+     * Cancel an order, only inside its cancel window. The items go back into the basket.
      */
-    public function cancelOrder(Request $request, $id)
+    public function cancel(Request $request, $id)
     {
         $request->validate([
             'reason' => 'nullable|string',
+            'cancel_reason' => 'nullable|string',
         ]);
 
-        $order = $request->user()->orders()->findOrFail($id);
+        $order = $request->user()->orders()->find($id);
 
-        if ($order->status === 'completed') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot cancel a completed order.',
-            ], 422);
+        if (!$order) {
+            return response()->json(['message' => 'Order not found.'], 404);
         }
 
-        $order->update([
-            'status' => 'cancelled',
-            'cancel_reason' => $request->reason,
-        ]);
+        $order = $this->orders->cancel($order, $request->input('cancel_reason') ?? $request->input('reason'));
 
         return response()->json([
             'success' => true,
             'message' => 'Order cancelled successfully.',
-            'order' => $order,
+            'order' => OrderResource::single($order),
         ]);
     }
 
     /**
-     * Accept/Reject order (Farmer side)
+     * Report a problem with one of the buyer's orders.
      */
-    public function updateFarmerStatus(Request $request, $id)
-    {
-        $request->validate([
-            'status' => 'required|in:accepted,rejected',
-            'notes' => 'nullable|string',
-        ]);
-
-        $farmer = $request->user();
-        $order = $farmer->assignedOrders()->findOrFail($id);
-
-        $farmer->assignedOrders()->updateExistingPivot($order->id, [
-            'status' => $request->status,
-            'farmer_notes' => $request->notes,
-        ]);
-
-        // If a farmer accepts, update the main order status to 'accepted'
-        if ($request->status === 'accepted') {
-            $order->update(['status' => 'accepted']);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Your status for this order has been updated.',
-            'status' => $request->status,
-        ]);
-    }
-
-    /**
-     * Update order status (Admin side)
-     */
-    public function adminUpdateStatus(Request $request, $id)
-    {
-        if (!$request->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized. Only admins can update global order status.'
-            ], 403);
-        }
-
-        $request->validate([
-            'status' => 'required|in:delivered_to_stock,completed',
-        ]);
-
-        $order = Order::findOrFail($id);
-
-        $order->update(['status' => $request->status]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order status updated by admin.',
-            'order' => $order
-        ]);
-    }
-
-    /**
-     * Submit feedback for an order (Buyer side)
-     */
-    public function submitOrderFeedback(Request $request, $id)
+    public function feedback(Request $request, $id)
     {
         $request->validate([
             'problem_type' => 'required|string',
@@ -348,7 +126,6 @@ class OrderController extends Controller
 
         $order = Order::findOrFail($id);
 
-        // Optional: Ensure the order is completed (or at least exists for this buyer)
         if ($order->buyer_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
@@ -356,8 +133,8 @@ class OrderController extends Controller
             ], 403);
         }
 
-        $feedback = \App\Models\OrderFeedback::create([
-            'order_id' => $id,
+        $feedback = OrderFeedback::create([
+            'order_id' => $order->id,
             'user_id' => $request->user()->id,
             'problem_type' => $request->problem_type,
             'priority' => $request->priority,
@@ -367,19 +144,6 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Feedback submitted successfully.',
-            'feedback' => $feedback,
-        ]);
-    }
-
-    /**
-     * Get all order feedback (Admin side)
-     */
-    public function allFeedback(Request $request)
-    {
-        $feedback = \App\Models\OrderFeedback::with(['order', 'user'])->orderBy('created_at', 'desc')->get();
-
-        return response()->json([
-            'success' => true,
             'feedback' => $feedback,
         ]);
     }

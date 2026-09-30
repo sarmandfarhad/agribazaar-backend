@@ -5,7 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-
 return new class extends Migration
 {
     /**
@@ -13,6 +12,16 @@ return new class extends Migration
      */
     public function up()
     {
+        // The statements below are PostgreSQL-only; other drivers (the SQLite test database)
+        // just need the same end result: a nullable small integer column.
+        if (DB::getDriverName() !== 'pgsql') {
+            Schema::table('farmer_products', function (Blueprint $table) {
+                $table->smallInteger('rating')->nullable()->change();
+            });
+
+            return;
+        }
+
         // Drop the existing check constraint if it exists
         DB::statement('ALTER TABLE farmer_products DROP CONSTRAINT IF EXISTS farmer_products_rating_check');
 

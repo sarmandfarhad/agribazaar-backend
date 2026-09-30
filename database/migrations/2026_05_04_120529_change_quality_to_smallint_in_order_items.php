@@ -12,6 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // The statements below are PostgreSQL-only; other drivers (the SQLite test database)
+        // just need the same end result: an integer column.
+        if (DB::getDriverName() !== 'pgsql') {
+            Schema::table('order_items', function (Blueprint $table) {
+                $table->integer('quality')->default(3)->change();
+            });
+
+            return;
+        }
+
         // Drop existing constraint if it exists
         DB::statement('ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_quality_check');
 

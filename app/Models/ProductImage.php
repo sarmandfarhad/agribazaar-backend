@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 
 class ProductImage extends Model
@@ -13,21 +14,10 @@ class ProductImage extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function getImageUrlAttribute()
+    public function getImageUrlAttribute(): ?string
     {
-        if (!$this->image_path) {
-            return null;
-        }
-
-        $path = ltrim($this->image_path, '/');
-
-        if (str_starts_with($path, 'storage/')) {
-            $path = substr($path, strlen('storage/'));
-        }
-
-        return route('media.show', ['path' => $path]);
+        return MediaUrl::for($this->image_path);
     }
 
     protected $appends = ['image_url'];
-    
 }

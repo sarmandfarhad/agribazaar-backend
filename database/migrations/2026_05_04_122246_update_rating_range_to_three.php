@@ -12,6 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // The constraint statements below are PostgreSQL-only; other drivers (the SQLite
+        // test database) start empty and only need the new default.
+        if (DB::getDriverName() !== 'pgsql') {
+            Schema::table('order_items', function (Blueprint $table) {
+                $table->integer('quality')->default(2)->change();
+            });
+
+            return;
+        }
+
         // Update order_items quality
         DB::statement('ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_quality_check');
         DB::statement('UPDATE order_items SET quality = 3 WHERE quality >= 4');
@@ -36,7 +46,7 @@ return new class extends Migration
         // Revert to 1-5 range if needed (not strictly required but good practice)
         DB::statement('ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_quality_check');
         DB::statement('ALTER TABLE order_items ADD CONSTRAINT order_items_quality_check CHECK (quality >= 1 AND quality <= 5)');
-        
+
         DB::statement('ALTER TABLE farmer_products DROP CONSTRAINT IF EXISTS farmer_products_rating_check');
         DB::statement('ALTER TABLE farmer_products ADD CONSTRAINT farmer_products_rating_check CHECK (rating >= 1 AND rating <= 5)');
     }

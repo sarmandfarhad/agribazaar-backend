@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Services\StockService;
+use App\Support\MediaUrl;
+use App\Support\Num;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
     /**
-     * The attributes that are mass assignable.
-     *
      * @var list<string>
      */
     protected $fillable = [
@@ -24,6 +26,36 @@ class Product extends Model
         'category_id',
         'status',
     ];
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = ['image_url', 'price', 'good_quantity', 'normal_quantity', 'bad_quantity'];
+
+    /**
+     * @var list<string>
+     */
+    protected $hidden = ['farmerProducts'];
+
+    /**
+     * Available kg per quality ([3 => good, 2 => normal, 1 => bad]), see StockService.
+     *
+     * @var array<int, float>|null
+     */
+    protected ?array $availableStock = null;
+
+    protected function casts(): array
+    {
+        return [
+            'price_good'   => 'decimal:2',
+            'price_normal' => 'decimal:2',
+            'price_bad'    => 'decimal:2',
+            'quantity'     => 'decimal:2',
+            'total_orders' => 'integer',
+        ];
+    }
+
+    // ─── Relations ─────────────────────────────────────────────────
 
     public function category()
     {
@@ -45,90 +77,94 @@ class Product extends Model
         return $this->hasMany(Wishlist::class);
     }
 
+    // ─── Stock and prices ──────────────────────────────────────────
+
+    public function setAvailableStock(array $byQuality): static
+    {
+        $this->availableStock = $byQuality;
+
+        return $this;
+    }
+
     /**
-     * Get the URL for the product image.
-     *
-     * @return string|null
+     * @return array<int, float>
      */
+    public function availableStock(): array
+    {
+        return $this->availableStock ??= app(StockService::class)->availableFor([$this->id])[$this->id];
+    }
+
+    public function availableFor(int $quality): float
+    {
+        return $this->availableStock()[$quality] ?? 0.0;
+    }
+
+    /**
+     * Current unit price for a quality (3 = good, 2 = normal, 1 = bad).
+     */
+    public function priceFor(int $quality): string
+    {
+        return match ($quality) {
+            3 => $this->price_good,
+            2 => $this->price_normal,
+            1 => $this->price_bad,
+        };
+    }
+
+    // ─── Accessors ─────────────────────────────────────────────────
+
     public function getImageUrlAttribute(): ?string
     {
-        if (!$this->image) {
-            return null;
-        }
-
-        $path = ltrim($this->image, '/');
-
-        if (str_starts_with($path, 'storage/')) {
-            $path = substr($path, strlen('storage/'));
-        }
-
-        return route('media.show', ['path' => $path]);
+        return MediaUrl::for($this->image);
     }
 
     /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
+     * The app's headline price, the same fallback it uses itself.
      */
-    protected $appends = ['image_url', 'good_quantity', 'normal_quantity', 'bad_quantity'];
-
-    /**
-     * Get the good quality quantity for this product.
-     */
-    public function getGoodQuantityAttribute(): float
+    public function getPriceAttribute(): ?string
     {
-        if ($this->relationLoaded('farmerProducts')) {
-            return (float) $this->farmerProducts->where('rating', 3)->sum('quantity');
-        }
-
-        return (float) $this->farmerProducts()->where('rating', 3)->sum('quantity');
+        return $this->price_good;
     }
 
     /**
-     * Get the normal quality quantity for this product.
+     * Available (not yet ordered) good quality kg.
      */
-    public function getNormalQuantityAttribute(): float
+    public function getGoodQuantityAttribute(): float|int
     {
-        if ($this->relationLoaded('farmerProducts')) {
-            return (float) $this->farmerProducts->where('rating', 2)->sum('quantity');
-        }
-
-        return (float) $this->farmerProducts()->where('rating', 2)->sum('quantity');
+        return Num::clean($this->availableFor(3));
     }
 
     /**
-     * Get the bad quality quantity for this product.
+     * Available (not yet ordered) normal quality kg.
      */
-    public function getBadQuantityAttribute(): float
+    public function getNormalQuantityAttribute(): float|int
     {
-        if ($this->relationLoaded('farmerProducts')) {
-            return (float) $this->farmerProducts->where('rating', 1)->sum('quantity');
-        }
-
-        return (float) $this->farmerProducts()->where('rating', 1)->sum('quantity');
+        return Num::clean($this->availableFor(2));
     }
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Available (not yet ordered) bad quality kg.
      */
-    protected function casts(): array
+    public function getBadQuantityAttribute(): float|int
     {
-        return [
-            'price_good'   => 'decimal:2',
-            'price_normal' => 'decimal:2',
-            'price_bad'    => 'decimal:2',
-            'quantity'       => 'decimal:2',
-            'total_orders'   => 'integer',
-            'total_quantity' => 'decimal:2',
-        ];
+        return Num::clean($this->availableFor(1));
     }
 
     /**
-     * Scope a query to search products by title or information.
+     * Total available kg across qualities. Overrides the stored column, which only
+     * mirrors raw farmer stock and ignores quantities held by orders.
      */
-    public function scopeSearch($query, $search)
+    public function getTotalQuantityAttribute(): float|int
+    {
+        return Num::clean(array_sum($this->availableStock()));
+    }
+
+    // ─── Scopes ────────────────────────────────────────────────────
+
+    /**
+     * Search by title, information or category name; with several words, also by each word.
+     */
+    public function scopeSearch(Builder $query, ?string $search): Builder
     {
         if (!$search) {
             return $query;
@@ -143,7 +179,6 @@ class Product extends Model
                     $sub->where('name', 'ILIKE', '%' . $search . '%');
                 });
 
-            // Split by space to search individual words if there are multiple
             $words = array_filter(explode(' ', $search));
             if (count($words) > 1) {
                 foreach ($words as $word) {

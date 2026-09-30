@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -10,8 +11,8 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    /** @use HasFactory<UserFactory> */
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -47,7 +48,6 @@ class User extends Authenticatable
         return $this->hasOne(Buyer::class);
     }
 
-
     public function profile()
     {
         return match ($this->user_type) {
@@ -56,14 +56,35 @@ class User extends Authenticatable
             default  => null,
         };
     }
+
+    /**
+     * The user object with its profile, the same shape GET /api/user returns.
+     */
+    public function toArrayWithProfile(): array
+    {
+        $data = $this->toArray();
+        // GET /api/user only carries the relation matching the user type
+        if ($this->user_type !== 'farmer') {
+            unset($data['farmer']);
+        }
+        if ($this->user_type !== 'buyer') {
+            unset($data['buyer']);
+        }
+        $data['profile'] = $this->profile()?->toArray();
+
+        return $data;
+    }
+
     public function isAdmin(): bool
     {
         return $this->user_type === 'admin';
     }
+
     public function isFarmer(): bool
     {
         return $this->user_type === 'farmer';
     }
+
     public function isBuyer(): bool
     {
         return $this->user_type === 'buyer';
@@ -77,8 +98,8 @@ class User extends Authenticatable
     public function assignedOrders()
     {
         return $this->belongsToMany(Order::class, 'farmer_order', 'farmer_id', 'order_id')
-                    ->withPivot('status')
-                    ->withTimestamps();
+            ->withPivot('status')
+            ->withTimestamps();
     }
 
     public function wishlist()
@@ -110,16 +131,16 @@ class User extends Authenticatable
 
         return $query->where(function ($q) use ($search) {
             $q->where('phone', 'ILIKE', '%' . $search . '%')
-              ->orWhere('email', 'ILIKE', '%' . $search . '%')
-              ->orWhereHas('farmer', function($sub) use ($search) {
-                  $sub->where('first_name', 'ILIKE', '%' . $search . '%')
-                      ->orWhere('second_name', 'ILIKE', '%' . $search . '%');
-              })
-              ->orWhereHas('buyer', function($sub) use ($search) {
-                  $sub->where('first_name', 'ILIKE', '%' . $search . '%')
-                      ->orWhere('second_name', 'ILIKE', '%' . $search . '%')
-                      ->orWhere('business_name', 'ILIKE', '%' . $search . '%');
-              });
+                ->orWhere('email', 'ILIKE', '%' . $search . '%')
+                ->orWhereHas('farmer', function ($sub) use ($search) {
+                    $sub->where('first_name', 'ILIKE', '%' . $search . '%')
+                        ->orWhere('second_name', 'ILIKE', '%' . $search . '%');
+                })
+                ->orWhereHas('buyer', function ($sub) use ($search) {
+                    $sub->where('first_name', 'ILIKE', '%' . $search . '%')
+                        ->orWhere('second_name', 'ILIKE', '%' . $search . '%')
+                        ->orWhere('business_name', 'ILIKE', '%' . $search . '%');
+                });
         });
     }
 }
