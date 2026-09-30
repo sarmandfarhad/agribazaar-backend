@@ -2,12 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\Buyer;
+use App\Models\Farmer;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -17,28 +19,52 @@ class UserFactory extends Factory
     protected static ?string $password;
 
     /**
-     * Define the model's default state.
+     * Define the model's default state: an approved buyer with a profile.
      *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'phone' => '0750' . fake()->unique()->numerify('#######'),
             'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'user_type' => 'buyer',
+            'status' => 'approved',
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
+    public function configure(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
+        return $this->afterCreating(function (User $user) {
+            $profile = [
+                'user_id' => $user->id,
+                'first_name' => fake()->firstName(),
+                'second_name' => fake()->lastName(),
+                'address' => fake()->streetAddress(),
+                'city' => 'Erbil',
+            ];
+
+            match ($user->user_type) {
+                'buyer' => Buyer::create($profile + ['business_name' => fake()->company()]),
+                'farmer' => Farmer::create($profile),
+                default => null,
+            };
+        });
+    }
+
+    public function buyer(): static
+    {
+        return $this->state(fn () => ['user_type' => 'buyer']);
+    }
+
+    public function farmer(): static
+    {
+        return $this->state(fn () => ['user_type' => 'farmer']);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => ['user_type' => 'admin']);
     }
 }

@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
+/**
+ * Category management (routes are limited to admins).
+ */
 class CategoryController extends Controller
 {
     /**
-     * Display a listing of categories.
+     * All categories, including inactive ones.
      */
     public function index(Request $request)
     {
@@ -19,27 +23,14 @@ class CategoryController extends Controller
             $query->search($request->search);
         }
 
-        $categories = $query->latest()->get();
-
         return response()->json([
             'success' => true,
-            'categories' => $categories
+            'categories' => $query->latest()->get(),
         ]);
     }
 
-    /**
-     * Store a newly created category in storage.
-     */
     public function store(Request $request)
     {
-        // Ensure only admin can perform this action
-        if (!$request->user() || !$request->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized. Only admins can perform this action.'
-            ], 403);
-        }
-
         $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
         ]);
@@ -52,36 +43,22 @@ class CategoryController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Category created successfully.',
-            'category' => $category
+            'category' => $category,
         ], 201);
     }
 
-    /**
-     * Display the specified category.
-     */
     public function show(Category $category)
     {
         return response()->json([
             'success' => true,
-            'category' => $category
+            'category' => $category,
         ]);
     }
 
-    /**
-     * Update the specified category in storage.
-     */
     public function update(Request $request, Category $category)
     {
-        // Ensure only admin can perform this action
-        if (!$request->user() || !$request->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized. Only admins can perform this action.'
-            ], 403);
-        }
-
         $request->validate([
-            'name' => 'sometimes|required|string|max:255|unique:categories,name,' . $category->id,
+            'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('categories', 'name')->ignore($category->id)],
             'isActive' => 'sometimes|boolean',
         ]);
 
@@ -90,28 +67,17 @@ class CategoryController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Category updated successfully.',
-            'category' => $category
+            'category' => $category,
         ]);
     }
 
-    /**
-     * Remove the specified category from storage.
-     */
-    public function destroy(Request $request, Category $category)
+    public function destroy(Category $category)
     {
-        // Ensure only admin can perform this action
-        if (!$request->user() || !$request->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized. Only admins can perform this action.'
-            ], 403);
-        }
-
         $category->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Category deleted successfully.'
+            'message' => 'Category deleted successfully.',
         ]);
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Wishlist;
 use App\Models\Product;
+use App\Models\Wishlist;
 use Illuminate\Http\Request;
 
 class WishlistController extends Controller
@@ -21,7 +21,7 @@ class WishlistController extends Controller
 
         return response()->json([
             'success' => true,
-            'wishlist' => $wishlist
+            'wishlist' => $wishlist,
         ]);
     }
 
@@ -45,7 +45,7 @@ class WishlistController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Product added to wishlist.',
-            'wishlist' => $wishlistEntry->load('product')
+            'wishlist' => $wishlistEntry->load('product'),
         ]);
     }
 
@@ -61,13 +61,13 @@ class WishlistController extends Controller
         if ($deleted) {
             return response()->json([
                 'success' => true,
-                'message' => 'Product removed from wishlist.'
+                'message' => 'Product removed from wishlist.',
             ]);
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Product not found in your wishlist.'
+            'message' => 'Product not found in your wishlist.',
         ], 404);
     }
 }

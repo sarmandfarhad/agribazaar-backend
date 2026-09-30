@@ -3,172 +3,104 @@
 namespace App\Http\Controllers\Api\Farmer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
 use App\Models\FarmerProduct;
+use App\Services\FarmerStockService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * The authenticated farmer's stock (routes are limited to farmers).
+ */
 class ProductController extends Controller
 {
-    /**
-     * Add or update product quantity for the authenticated farmer.
-     */
-    public function store(Request $request)
+    public function __construct(private FarmerStockService $stock)
     {
-        $user = $request->user();
-        if (!$user->isFarmer()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized. Only farmers can perform this action.'
-            ], 403);
-        }
-
-        $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'quantity'   => 'required|numeric|min:0',
-            'rating'     => 'nullable|integer|min:1|max:3',
-        ]);
-
-        $farmer = $user->farmer;
-
-        try {
-            DB::transaction(function () use ($farmer, $request) {
-                $farmerProduct = FarmerProduct::where('farmer_id', $farmer->id)
-                    ->where('product_id', $request->product_id)
-                    ->first();
-
-                if ($farmerProduct) {
-                    $farmerProduct->quantity += $request->quantity;
-                    if ($request->has('rating')) {
-                        $farmerProduct->rating = $request->rating;
-                    }
-                    $farmerProduct->save();
-                } else {
-                    FarmerProduct::create([
-                        'farmer_id' => $farmer->id,
-                        'product_id' => $request->product_id,
-                        'quantity' => $request->quantity,
-                        'rating' => $request->rating,
-                    ]);
-                }
-
-                // Update the product's total_quantity
-                $totalQuantity = FarmerProduct::where('product_id', $request->product_id)->sum('quantity');
-                Product::where('id', $request->product_id)->update(['total_quantity' => $totalQuantity]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Product quantity updated successfully.',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update product quantity: ' . $e->getMessage()
-            ], 500);
-        }
     }
 
     /**
-     * Update product quantity for the authenticated farmer.
-     */
-    public function update(Request $request, $id)
-    {
-        $farmer = $request->user()->farmer;
-        $farmerProduct = FarmerProduct::where('farmer_id', $farmer->id)->findOrFail($id);
-
-        $request->validate([
-            'quantity' => 'required|numeric|min:0',
-            'rating'   => 'nullable|integer|min:1|max:3',
-        ]);
-
-        try {
-            DB::transaction(function () use ($farmerProduct, $request) {
-                $farmerProduct->update([
-                    'quantity' => $request->quantity,
-                    'rating'   => $request->rating ?? $farmerProduct->rating,
-                ]);
-
-                // Update the product's total_quantity
-                $totalQuantity = FarmerProduct::where('product_id', $farmerProduct->product_id)->sum('quantity');
-                Product::where('id', $farmerProduct->product_id)->update(['total_quantity' => $totalQuantity]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Product quantity updated successfully.',
-                'farmer_product' => $farmerProduct
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update product quantity: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Remove the product contribution.
-     */
-    public function destroy(Request $request, $id)
-    {
-        $farmer = $request->user()->farmer;
-        $farmerProduct = FarmerProduct::where('farmer_id', $farmer->id)->findOrFail($id);
-        $productId = $farmerProduct->product_id;
-
-        try {
-            DB::transaction(function () use ($farmerProduct, $productId) {
-                $farmerProduct->delete();
-
-                // Update the product's total_quantity
-                $totalQuantity = FarmerProduct::where('product_id', $productId)->sum('quantity');
-                Product::where('id', $productId)->update(['total_quantity' => $totalQuantity]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Product contribution removed successfully.'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to remove product contribution: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * List farmer's products.
+     * List the farmer's stock rows.
      */
     public function index(Request $request)
     {
-        $farmer = $request->user()->farmer;
         $query = FarmerProduct::with('product')
-            ->where('farmer_id', $farmer->id);
+            ->where('farmer_id', $request->user()->farmer->id);
 
         if ($request->has('search')) {
-            $query->whereHas('product', function ($q) use ($request) {
-                $q->search($request->search);
-            });
+            $query->whereHas('product', fn ($q) => $q->search($request->search));
         }
-
-        $products = $query->get()->map(function ($farmerProduct) {
-            $product = $farmerProduct->product;
-            if ($product && $product->image) {
-                $clean = ltrim($product->image, '/');
-
-                if (str_starts_with($clean, 'storage/')) {
-                    $clean = substr($clean, strlen('storage/'));
-                }
-
-                $product->image_url = route('media.show', ['path' => $clean]);
-            }
-            return $farmerProduct;
-        });
 
         return response()->json([
             'success' => true,
-            'farmer_products' => $products
+            'farmer_products' => $query->get(),
         ]);
+    }
+
+    /**
+     * Add kg of a product at a quality. The app sends the quality as both "quality" and "rating".
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity'   => 'required|numeric|min:0',
+            'rating'     => 'nullable|integer|min:1|max:3',
+            'quality'    => 'nullable|integer|min:1|max:3',
+        ]);
+
+        $this->stock->add(
+            $request->user()->farmer->id,
+            (int) $data['product_id'],
+            $this->rating($data),
+            (float) $data['quantity'],
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Product quantity updated successfully.',
+        ]);
+    }
+
+    /**
+     * Set the quantity (and optionally the quality) of one of the farmer's rows.
+     */
+    public function update(Request $request, $id)
+    {
+        $row = $this->ownRow($request, $id);
+
+        $data = $request->validate([
+            'quantity' => 'required|numeric|min:0',
+            'rating'   => 'nullable|integer|min:1|max:3',
+            'quality'  => 'nullable|integer|min:1|max:3',
+        ]);
+
+        $rating = $this->rating($data);
+        $row = $this->stock->update($row, (float) $data['quantity'], $rating, changeRating: $rating !== null);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Product quantity updated successfully.',
+            'farmer_product' => $row,
+        ]);
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $this->stock->remove($this->ownRow($request, $id));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Product contribution removed successfully.',
+        ]);
+    }
+
+    private function ownRow(Request $request, $id): FarmerProduct
+    {
+        return FarmerProduct::where('farmer_id', $request->user()->farmer->id)->findOrFail($id);
+    }
+
+    private function rating(array $data): ?int
+    {
+        $rating = $data['rating'] ?? $data['quality'] ?? null;
+
+        return $rating === null ? null : (int) $rating;
     }
 }

@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
     /**
      * Display a listing of active categories.
      */
-    public function index(\Illuminate\Http\Request $request)
+    public function index(Request $request)
     {
         $query = Category::where('isActive', true);
 
@@ -22,7 +23,7 @@ class CategoryController extends Controller
 
         return response()->json([
             'success' => true,
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 
@@ -34,7 +35,7 @@ class CategoryController extends Controller
         if (!$category->isActive) {
             return response()->json([
                 'success' => false,
-                'message' => 'Category is not available.'
+                'message' => 'Category is not available.',
             ], 404);
         }
 
@@ -44,7 +45,7 @@ class CategoryController extends Controller
             'products' => $category->products()
                 ->where('status', '!=', 'inactive')
                 ->with(['images'])
-                ->get()
+                ->get(),
         ]);
     }
 }

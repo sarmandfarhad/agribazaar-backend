@@ -2,7 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
@@ -12,11 +13,11 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
-        $vegetableCategory = \App\Models\Category::where('name', 'Vegetable')->first();
-        $fruitCategory     = \App\Models\Category::where('name', 'Fruit')->first();
-        $grainsCategory    = \App\Models\Category::where('name', 'Grains')->first();
+        $vegetableCategory = Category::where('name', 'Vegetable')->first();
+        $fruitCategory = Category::where('name', 'Fruit')->first();
+        $grainsCategory = Category::where('name', 'Grains')->first();
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Red Tomato',
             'price_good'     => 2.50,
             'price_normal'   => 2.00,
@@ -28,7 +29,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 100,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Green Onion',
             'price_good'     => 1.50,
             'price_normal'   => 1.25,
@@ -40,7 +41,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 50,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Red Apple',
             'price_good'     => 3.50,
             'price_normal'   => 3.00,
@@ -52,7 +53,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 80,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Basmati Rice',
             'price_good'     => 6.00,
             'price_normal'   => 5.50,
@@ -65,7 +66,7 @@ class ProductSeeder extends Seeder
         ]);
 
         // Additional admin products
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Carrot',
             'price_good'     => 1.80,
             'price_normal'   => 1.50,
@@ -77,7 +78,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 120,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Banana',
             'price_good'     => 2.00,
             'price_normal'   => 1.75,
@@ -89,7 +90,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 150,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Spinach',
             'price_good'     => 1.25,
             'price_normal'   => 1.00,
@@ -101,7 +102,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 60,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Wheat Flour',
             'price_good'     => 4.50,
             'price_normal'   => 4.00,
@@ -113,7 +114,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 250,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Orange',
             'price_good'     => 2.75,
             'price_normal'   => 2.50,
@@ -125,7 +126,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 90,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Cucumber',
             'price_good'     => 1.40,
             'price_normal'   => 1.20,
@@ -137,7 +138,7 @@ class ProductSeeder extends Seeder
             'total_quantity' => 110,
         ]);
 
-        \App\Models\Product::create([
+        Product::create([
             'title'          => 'Corn',
             'price_good'     => 3.00,
             'price_normal'   => 2.50,
